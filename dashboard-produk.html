@@ -73,7 +73,7 @@
     <h1 class="font-extrabold text-xl text-primary mb-6">Produk</h1>
 
     <form id="produk-form" class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 space-y-5">
-      <h2 class="font-bold text-base text-primary">Tambah Produk</h2>
+      <h2 class="font-bold text-base text-primary" id="produk-form-title">Tambah Produk</h2>
 
       <div>
         <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="nama">Nama Produk *</label>
@@ -109,6 +109,19 @@
           class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container"></textarea>
       </div>
 
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="shopee-link">Link Shopee (opsional)</label>
+          <input id="shopee-link" type="url" placeholder="https://shopee.co.id/..."
+            class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="tokopedia-link">Link Tokopedia (opsional)</label>
+          <input id="tokopedia-link" type="url" placeholder="https://www.tokopedia.com/..."
+            class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+        </div>
+      </div>
+
       <div>
         <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="foto">Foto Produk</label>
         <input id="foto" name="foto" type="file" accept="image/png,image/jpeg,image/webp"
@@ -118,10 +131,16 @@
 
       <div id="form-message" class="hidden text-sm font-semibold rounded-lg px-3 py-2"></div>
 
-      <button type="submit" id="submit-btn"
-        class="w-full py-3 rounded-lg bg-primary-container text-white font-bold text-sm hover:bg-primary transition disabled:opacity-50 disabled:cursor-not-allowed">
-        Simpan Produk
-      </button>
+      <div class="flex gap-3">
+        <button type="submit" id="submit-btn"
+          class="flex-1 py-3 rounded-lg bg-primary-container text-white font-bold text-sm hover:bg-primary transition disabled:opacity-50 disabled:cursor-not-allowed">
+          Simpan Produk
+        </button>
+        <button type="button" id="cancel-edit-btn"
+          class="hidden px-5 py-3 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition">
+          Batal Edit
+        </button>
+      </div>
     </form>
 
     <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 mt-6">
@@ -138,9 +157,38 @@
 <script src="/assets/js/upt-dashboard.js"></script>
 <script>
   let currentUptId = null;
+  let editingProdukId = null;
+  let produkListCache = [];
   const form = document.getElementById("produk-form");
   const submitBtn = document.getElementById("submit-btn");
   const messageBox = document.getElementById("form-message");
+
+  function enterEditMode(p) {
+    editingProdukId = p.id;
+    document.getElementById("produk-form-title").textContent = "Edit Produk";
+    submitBtn.textContent = "Simpan Perubahan";
+    document.getElementById("cancel-edit-btn").classList.remove("hidden");
+
+    document.getElementById("nama").value = p.nama;
+    document.getElementById("kategori").value = p.kategori || "";
+    document.getElementById("harga").value = p.harga;
+    document.getElementById("deskripsi").value = p.deskripsi || "";
+    document.getElementById("shopee-link").value = p.shopee_link || "";
+    document.getElementById("tokopedia-link").value = p.tokopedia_link || "";
+    document.getElementById("foto").value = "";
+
+    form.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function exitEditMode() {
+    editingProdukId = null;
+    document.getElementById("produk-form-title").textContent = "Tambah Produk";
+    submitBtn.textContent = "Simpan Produk";
+    document.getElementById("cancel-edit-btn").classList.add("hidden");
+    form.reset();
+  }
+
+  document.getElementById("cancel-edit-btn").addEventListener("click", exitEditMode);
 
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, (c) => ({
@@ -176,13 +224,30 @@
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     submitBtn.disabled = true;
-    submitBtn.textContent = "Menyimpan...";
+    submitBtn.textContent = editingProdukId ? "Menyimpan..." : "Menyimpan...";
     messageBox.classList.add("hidden");
 
     if (!currentUptId) {
       showMessage("Tunggu data akun selesai dimuat, lalu coba lagi.", "error");
       submitBtn.disabled = false;
-      submitBtn.textContent = "Simpan Produk";
+      submitBtn.textContent = editingProdukId ? "Simpan Perubahan" : "Simpan Produk";
+      return;
+    }
+
+    const shopeeLink = document.getElementById("shopee-link").value.trim();
+    const tokopediaLink = document.getElementById("tokopedia-link").value.trim();
+    const urlPattern = /^https:\/\/.+/;
+
+    if (shopeeLink && !urlPattern.test(shopeeLink)) {
+      showMessage("Link Shopee harus diawali https://", "error");
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingProdukId ? "Simpan Perubahan" : "Simpan Produk";
+      return;
+    }
+    if (tokopediaLink && !urlPattern.test(tokopediaLink)) {
+      showMessage("Link Tokopedia harus diawali https://", "error");
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingProdukId ? "Simpan Perubahan" : "Simpan Produk";
       return;
     }
 
@@ -201,26 +266,42 @@
         image_url = await uploadFoto(fotoFile, currentUptId);
       }
 
-      const { error: insertError } = await supabaseClient.from("produk").insert({
-        upt_id: currentUptId,
+      const payload = {
         nama,
         kategori,
         harga,
         deskripsi,
-        image_url,
-        status: "aktif",
-      });
-      if (insertError) throw insertError;
+        shopee_link: shopeeLink || null,
+        tokopedia_link: tokopediaLink || null,
+      };
+      if (image_url) payload.image_url = image_url;
 
-      showMessage("Produk berhasil disimpan.", "success");
-      form.reset();
+      if (editingProdukId) {
+        const { error: updateError } = await supabaseClient
+          .from("produk")
+          .update(payload)
+          .eq("id", editingProdukId);
+        if (updateError) throw updateError;
+        showMessage("Perubahan berhasil disimpan.", "success");
+        exitEditMode();
+      } else {
+        const { error: insertError } = await supabaseClient.from("produk").insert({
+          ...payload,
+          upt_id: currentUptId,
+          status: "aktif",
+        });
+        if (insertError) throw insertError;
+        showMessage("Produk berhasil disimpan.", "success");
+        form.reset();
+      }
+
       loadProdukList(currentUptId);
     } catch (err) {
       console.error(err);
       showMessage("Gagal menyimpan produk: " + (err.message || "terjadi kesalahan"), "error");
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = "Simpan Produk";
+      submitBtn.textContent = editingProdukId ? "Simpan Perubahan" : "Simpan Produk";
     }
   });
 
@@ -245,6 +326,7 @@
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <button class="toggle-status-btn px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary text-xs font-bold transition border border-border-subtle" data-id="${p.id}" data-current-status="${p.status}">${toggleLabel}</button>
+          <button class="edit-produk-btn px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary text-xs font-bold transition border border-border-subtle" data-id="${p.id}">Edit</button>
           <button class="delete-produk-btn px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition border border-red-200" data-id="${p.id}" data-nama="${escapeHtml(p.nama)}">Hapus</button>
         </div>
       </div>`;
@@ -254,7 +336,7 @@
     const container = document.getElementById("produk-list");
     const { data, error } = await supabaseClient
       .from("produk")
-      .select("id, nama, kategori, harga, image_url, status")
+      .select("id, nama, kategori, harga, deskripsi, image_url, status, shopee_link, tokopedia_link")
       .eq("upt_id", uptId)
       .order("created_at", { ascending: false });
 
@@ -269,6 +351,7 @@
       return;
     }
 
+    produkListCache = data;
     container.innerHTML = data.map(renderProdukListItem).join("");
 
     container.querySelectorAll(".toggle-status-btn").forEach((btn) => {
@@ -288,6 +371,13 @@
           return;
         }
         loadProdukList(uptId);
+      });
+    });
+
+    container.querySelectorAll(".edit-produk-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const produk = produkListCache.find((item) => item.id === btn.dataset.id);
+        if (produk) enterEditMode(produk);
       });
     });
 
