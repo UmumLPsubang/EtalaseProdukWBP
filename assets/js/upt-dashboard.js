@@ -7,13 +7,20 @@ async function requireUptSession() {
 
   const { data: profile, error } = await supabaseClient
     .from("profiles")
-    .select("upt_id, upt:upt_id (nama, kode, whatsapp)")
+    .select("upt_id, upt:upt_id (nama, kode, whatsapp, locked)")
     .eq("id", session.user.id)
     .single();
 
   if (error || !profile) {
     console.error("Gagal memuat profil UPT:", error);
     alert("Akun ini belum terhubung ke UPT manapun. Hubungi admin, lalu login ulang.");
+    await supabaseClient.auth.signOut();
+    window.location.href = "/login";
+    return null;
+  }
+
+  if (profile.upt.locked) {
+    alert("Akun ini dikunci oleh Kanwil. Hubungi admin Kanwil untuk membuka kembali.");
     await supabaseClient.auth.signOut();
     window.location.href = "/login";
     return null;
