@@ -61,10 +61,15 @@
 <script src="/assets/js/super-admin-dashboard.js"></script>
 <script>
   (async function bootstrap() {
-    const admin = await requireSuperAdminSession();
-    if (!admin) return;
-    document.getElementById("header-admin-nama").textContent = admin.nama || admin.email;
-    initTabs();
+    try {
+      const admin = await requireSuperAdminSession();
+      if (!admin) return;
+      document.getElementById("header-admin-nama").textContent = admin.nama || admin.email;
+      initTabs();
+    } catch (err) {
+      console.error("Dashboard bootstrap failed:", err);
+      document.getElementById("header-admin-nama").textContent = "Gagal memuat, silakan refresh halaman.";
+    }
   })();
 </script>
 </body>
