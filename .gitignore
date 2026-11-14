@@ -160,3 +160,9 @@ graphify-out/
 # Admin scripts: never commit secrets or generated credentials
 scripts/.env.local
 scripts/output/
+
+# Git worktrees used for isolated feature implementation
+.worktrees/
+
+# Superpowers SDD workspace (ledger, briefs, review packages) - local scratch
+.superpowers/
