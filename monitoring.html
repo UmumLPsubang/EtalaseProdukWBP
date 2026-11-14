@@ -233,11 +233,7 @@
 </div>
 </div>
 </div></div>
-<!-- MAIN 2-COLUMN ANALYTICS SECTION (7 cols left, 5 cols right on desktop) -->
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-<!-- LEFT COLUMN (7 COLS): Charts & 33 UPT Performance Table -->
-<div class="lg:col-span-7 space-y-6">
-<!-- Monthly Performance Chart Card -->
+<!-- ROW 1: Performa Penjualan Bulanan (full width) -->
 <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle">
 <div class="flex items-center gap-2 mb-5">
 <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-900 flex items-center justify-center">
@@ -245,13 +241,12 @@
 </div>
 <h2 class="font-bold text-lg text-primary">Performa Penjualan Bulanan</h2>
 </div>
-<div id="chart-tren-placeholder" class="w-full bg-gradient-to-b from-slate-50 to-surface-container/60 rounded-xl p-8 border border-border-subtle flex flex-col items-center justify-center text-center gap-2 min-h-[200px]">
-<span class="material-symbols-outlined text-slate-300 text-[40px]">bar_chart</span>
+<div id="chart-tren-placeholder" class="w-full bg-gradient-to-b from-slate-50 to-surface-container/60 rounded-xl px-6 py-7 border border-border-subtle flex flex-col items-center justify-center text-center gap-1.5">
+<span class="material-symbols-outlined text-slate-300 text-[32px]">bar_chart</span>
 <p class="text-sm font-semibold text-slate-500">Belum ada data histori bulanan</p>
-<p class="text-xs text-slate-400 max-w-sm">Grafik tren akan muncul setelah sistem mengumpulkan data transaksi selama beberapa bulan berjalan.</p>
+<p class="text-xs text-slate-400 max-w-md">Grafik tren akan muncul setelah sistem mengumpulkan data transaksi selama beberapa bulan berjalan.</p>
 </div>
-<div class="mt-4 space-y-4">
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
 <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-center" id="kpi-pertumbuhan">
 <span class="text-[11px] font-semibold text-on-surface-variant block uppercase tracking-wide">Rata-rata Pertumbuhan</span>
 <span class="text-sm font-bold text-slate-400 block mt-1">Belum ada data histori</span>
@@ -261,23 +256,10 @@
 <span class="text-sm font-bold text-slate-400 block mt-1">Belum ada data histori</span>
 </div>
 </div>
-<div class="p-3.5 bg-slate-50/80 rounded-xl border border-border-subtle">
-<div class="flex items-center justify-between mb-2">
-<div class="flex items-center gap-1.5">
-<span class="material-symbols-outlined text-[16px] text-primary">map</span>
-<span class="text-xs font-bold text-primary">Distribusi Penjualan per Wilayah</span>
 </div>
-<span class="text-[10px] font-semibold text-slate-500">Akumulasi 33 Lapas &amp; Rutan</span>
-</div>
-<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs" id="wilayah-distribusi-list">
-<p class="col-span-full text-center text-slate-400 py-3">Memuat...</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-<!-- RIGHT COLUMN (5 COLS): Channel Distribution, PNBP Governance & Order Fulfillment -->
-<div class="lg:col-span-5 space-y-6">
+
+<!-- ROW 2: Distribusi Kanal Transaksi + Komposisi Kategori Produk (sejajar) -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 <!-- Card 1: Distribusi Kanal Transaksi -->
 <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle">
 <div class="flex items-center justify-between mb-4">
@@ -323,8 +305,27 @@
 </div>
 </div>
 </div>
+
+<!-- ROW 3: Distribusi Penjualan per Wilayah (full width) -->
+<div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle">
+<div class="flex items-center justify-between mb-4 gap-3">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">map</span>
 </div>
-<!-- 33 UPT Performance Table Card -->
+<div>
+<h3 class="font-bold text-base text-primary">Distribusi Penjualan per Wilayah</h3>
+<p class="text-xs text-on-surface-variant">Akumulasi omzet berdasarkan wilayah UPT</p>
+</div>
+</div>
+<span class="text-[10px] font-semibold text-slate-500 shrink-0 hidden sm:inline">Akumulasi 33 Lapas &amp; Rutan</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-xs" id="wilayah-distribusi-list">
+<p class="col-span-full text-center text-slate-400 py-3">Memuat...</p>
+</div>
+</div>
+
+<!-- ROW 4: 33 UPT Performance Table Card -->
 <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle"><!-- Header Section -->
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
   <div>
