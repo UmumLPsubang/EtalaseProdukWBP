@@ -710,7 +710,65 @@
 </div>
 </div>
   </div>
-  <div id="panel-kelola-upt" data-panel="kelola-upt" class="space-y-6 hidden"></div>
+  <div id="panel-kelola-upt" data-panel="kelola-upt" class="space-y-6 hidden">
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <h2 class="font-bold text-lg text-primary">Kelola 33 UPT</h2>
+        <div class="flex items-center gap-2">
+          <input id="kelola-upt-search" type="text" placeholder="Cari UPT..." class="bg-surface-container px-3 py-1.5 rounded-xl border border-border-subtle text-xs font-semibold outline-none w-56">
+          <select id="kelola-upt-filter-status" class="bg-surface-container px-3 py-1.5 rounded-xl border border-border-subtle text-xs font-semibold outline-none">
+            <option value="">Semua Status</option>
+            <option value="aktif">Aktif</option>
+            <option value="nonaktif">Nonaktif</option>
+            <option value="locked">Terkunci</option>
+          </select>
+        </div>
+      </div>
+      <div class="overflow-x-auto max-h-[560px] overflow-y-auto rounded-xl border border-border-subtle/80">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead class="sticky top-0 z-10 bg-surface-container">
+            <tr class="text-slate-700 font-extrabold uppercase tracking-wider text-[11px]">
+              <th class="py-3 px-3.5">Kode</th><th class="py-3 px-3">Nama</th><th class="py-3 px-3">Wilayah</th>
+              <th class="py-3 px-3">WhatsApp</th><th class="py-3 px-3">Status</th><th class="py-3 px-3.5 text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="kelola-upt-table-body" class="divide-y divide-border-subtle/70 bg-white"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="edit-upt-modal" class="hidden fixed inset-0 z-[100] items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/50" onclick="document.getElementById('edit-upt-modal').classList.add('hidden')"></div>
+    <div class="relative bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
+      <h3 class="font-bold text-base text-primary">Edit UPT</h3>
+      <form id="edit-upt-form" class="space-y-3">
+        <input type="hidden" id="edit-upt-id">
+        <div><label class="block text-xs font-bold text-slate-600 mb-1">Nama</label><input id="edit-upt-nama" required class="w-full px-3 py-2 rounded-lg border border-border-subtle text-sm"></div>
+        <div><label class="block text-xs font-bold text-slate-600 mb-1">Wilayah</label><input id="edit-upt-wilayah" class="w-full px-3 py-2 rounded-lg border border-border-subtle text-sm"></div>
+        <div><label class="block text-xs font-bold text-slate-600 mb-1">WhatsApp (62...)</label><input id="edit-upt-whatsapp" class="w-full px-3 py-2 rounded-lg border border-border-subtle text-sm"></div>
+        <div><label class="block text-xs font-bold text-slate-600 mb-1">Status</label>
+          <select id="edit-upt-status" class="w-full px-3 py-2 rounded-lg border border-border-subtle text-sm">
+            <option value="aktif">Aktif</option><option value="nonaktif">Nonaktif</option>
+          </select>
+        </div>
+        <div id="edit-upt-message" class="hidden text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2"></div>
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="document.getElementById('edit-upt-modal').classList.add('hidden')" class="flex-1 py-2.5 rounded-lg bg-surface-container text-slate-700 font-bold text-sm">Batal</button>
+          <button type="submit" id="edit-upt-submit" class="flex-1 py-2.5 rounded-lg bg-primary-container text-white font-bold text-sm">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="reset-password-modal" class="hidden fixed inset-0 z-[100] items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/50" onclick="document.getElementById('reset-password-modal').classList.add('hidden')"></div>
+    <div class="relative bg-white rounded-2xl w-full max-w-sm p-6 space-y-4 text-center">
+      <h3 class="font-bold text-base text-primary">Reset Password</h3>
+      <div id="reset-password-body" class="text-sm text-slate-600"></div>
+      <button onclick="document.getElementById('reset-password-modal').classList.add('hidden')" class="w-full py-2.5 rounded-lg bg-primary-container text-white font-bold text-sm">Tutup</button>
+    </div>
+  </div>
   <div id="panel-transaksi" data-panel="transaksi" class="space-y-6 hidden"></div>
   <div id="panel-analytics" data-panel="analytics" class="space-y-6 hidden"></div>
 </main>
@@ -720,12 +778,16 @@
 <script src="/assets/js/super-admin-dashboard.js"></script>
 <script src="/assets/js/monitoring-aggregates.js"></script>
 <script src="/assets/js/super-admin-overview.js"></script>
+<script src="/assets/js/super-admin-kelola-upt.js"></script>
 <script>
   (async function bootstrap() {
     try {
       const admin = await requireSuperAdminSession();
       if (!admin) return;
       document.getElementById("header-admin-nama").textContent = admin.nama || admin.email;
+      window.onTabActivated = function (tabName) {
+        if (tabName === "kelola-upt") loadKelolaUptTable();
+      };
       initTabs();
     } catch (err) {
       console.error("Dashboard bootstrap failed:", err);
