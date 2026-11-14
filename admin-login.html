@@ -107,7 +107,9 @@
       .eq("id", session.user.id)
       .single();
 
-    if (profileError) {
+    // PGRST116 = no matching row (account has no profile, or RLS hides it):
+    // treat as not-a-super-admin. Any other error is transient: do not sign out.
+    if (profileError && profileError.code !== "PGRST116") {
       msg.textContent = "Gagal memuat profil, silakan coba lagi.";
       msg.classList.remove("hidden");
       btn.disabled = false;
@@ -115,7 +117,7 @@
       return;
     }
 
-    if (!profile || profile.role !== "super_admin") {
+    if (profileError || !profile || profile.role !== "super_admin") {
       await supabaseClient.auth.signOut();
       msg.textContent = "Akun ini bukan akun Super Admin.";
       msg.classList.remove("hidden");
