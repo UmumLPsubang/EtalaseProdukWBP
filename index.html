@@ -138,11 +138,27 @@
     return `https://wa.me/${nomor}?text=${pesan}`;
   }
 
+  function renderActionButtons(p) {
+    const buttons = [];
+    const waUrl = waLink(p);
+    if (waUrl) {
+      buttons.push(`<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#25D366] hover:bg-[#20ba59] text-white text-sm font-bold transition-all shadow-sm" href="${escapeHtml(waUrl)}" rel="noopener noreferrer" target="_blank">Pesan via WhatsApp Langsung</a>`);
+    }
+    if (p.shopee_link) {
+      buttons.push(`<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#EE4D2D] hover:bg-[#d8431f] text-white text-sm font-bold transition-all shadow-sm" href="${escapeHtml(p.shopee_link)}" rel="noopener noreferrer" target="_blank">Beli di Shopee</a>`);
+    }
+    if (p.tokopedia_link) {
+      buttons.push(`<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#03AC0E] hover:bg-[#029a0c] text-white text-sm font-bold transition-all shadow-sm" href="${escapeHtml(p.tokopedia_link)}" rel="noopener noreferrer" target="_blank">Beli di Tokopedia</a>`);
+    }
+
+    if (buttons.length === 0) {
+      return `<p class="text-xs text-outline italic px-1">Nomor WA belum tersedia, hubungi Divisi Pemasyarakatan Kanwil Jabar.</p>`;
+    }
+    return `<div class="flex flex-col gap-2">${buttons.join("")}</div>`;
+  }
+
   function renderProdukCard(p) {
-    const link = waLink(p);
-    const waButton = link
-      ? `<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#25D366] hover:bg-[#20ba59] text-white text-sm font-bold transition-all shadow-sm" href="${escapeHtml(link)}" rel="noopener noreferrer" target="_blank">Pesan via WhatsApp Langsung</a>`
-      : `<p class="text-xs text-outline italic px-1">Nomor WA belum tersedia, hubungi Divisi Pemasyarakatan Kanwil Jabar.</p>`;
+    const actionButtons = renderActionButtons(p);
 
     const img = p.image_url
       ? `<img alt="${escapeHtml(p.nama)}" class="w-full h-44 object-cover" src="${escapeHtml(p.image_url)}">`
@@ -163,7 +179,7 @@
               ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">${terjual.toLocaleString("id-ID")} terjual</span>`
               : `<span class="text-[11px] text-outline italic">Belum ada penjualan</span>`;
           })()}
-          ${waButton}
+          ${actionButtons}
         </div>
       </article>`;
   }
@@ -193,7 +209,7 @@
     const [produkResult, unitsSold] = await Promise.all([
       supabaseClient
         .from("produk")
-        .select("id, nama, kategori, harga, deskripsi, image_url, upt:upt_id (nama, whatsapp)")
+        .select("id, nama, kategori, harga, deskripsi, image_url, shopee_link, tokopedia_link, upt:upt_id (nama, whatsapp)")
         .eq("status", "aktif")
         .order("created_at", { ascending: false }),
       loadUnitsSold(),
