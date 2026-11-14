@@ -186,6 +186,7 @@
     submitBtn.textContent = "Simpan Produk";
     document.getElementById("cancel-edit-btn").classList.add("hidden");
     form.reset();
+    messageBox.classList.add("hidden");
   }
 
   document.getElementById("cancel-edit-btn").addEventListener("click", exitEditMode);
@@ -224,7 +225,7 @@
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     submitBtn.disabled = true;
-    submitBtn.textContent = editingProdukId ? "Menyimpan..." : "Menyimpan...";
+    submitBtn.textContent = "Menyimpan...";
     messageBox.classList.add("hidden");
 
     if (!currentUptId) {
@@ -277,11 +278,20 @@
       if (image_url) payload.image_url = image_url;
 
       if (editingProdukId) {
-        const { error: updateError } = await supabaseClient
+        const { data: updateData, error: updateError } = await supabaseClient
           .from("produk")
           .update(payload)
-          .eq("id", editingProdukId);
+          .eq("id", editingProdukId)
+          .select();
         if (updateError) throw updateError;
+        if (!updateData || updateData.length === 0) {
+          showMessage("Produk tidak ditemukan atau bukan milik Anda. Mungkin sudah dihapus.", "error");
+          exitEditMode();
+          loadProdukList(currentUptId);
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Simpan Produk";
+          return;
+        }
         showMessage("Perubahan berhasil disimpan.", "success");
         exitEditMode();
       } else {
@@ -398,6 +408,9 @@
           alert("Produk tidak terhapus (mungkin sudah tidak ada atau bukan milik Anda).");
           btn.disabled = false;
           return;
+        }
+        if (editingProdukId === id) {
+          exitEditMode();
         }
         loadProdukList(uptId);
       });

@@ -144,10 +144,10 @@
     if (waUrl) {
       buttons.push(`<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#25D366] hover:bg-[#20ba59] text-white text-sm font-bold transition-all shadow-sm" href="${escapeHtml(waUrl)}" rel="noopener noreferrer" target="_blank">Pesan via WhatsApp Langsung</a>`);
     }
-    if (p.shopee_link) {
+    if (p.shopee_link && p.shopee_link.startsWith("https://")) {
       buttons.push(`<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#EE4D2D] hover:bg-[#d8431f] text-white text-sm font-bold transition-all shadow-sm" href="${escapeHtml(p.shopee_link)}" rel="noopener noreferrer" target="_blank">Beli di Shopee</a>`);
     }
-    if (p.tokopedia_link) {
+    if (p.tokopedia_link && p.tokopedia_link.startsWith("https://")) {
       buttons.push(`<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#03AC0E] hover:bg-[#029a0c] text-white text-sm font-bold transition-all shadow-sm" href="${escapeHtml(p.tokopedia_link)}" rel="noopener noreferrer" target="_blank">Beli di Tokopedia</a>`);
     }
 
