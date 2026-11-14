@@ -157,18 +157,50 @@
           <h3 class="font-bold text-title-md text-on-surface">${escapeHtml(p.nama)}</h3>
           <p class="text-sm text-on-surface-variant flex-1">${escapeHtml(p.deskripsi || "")}</p>
           <p class="font-extrabold text-primary">${formatRupiah(p.harga)}</p>
+          ${(() => {
+            const terjual = unitsSoldByProduk.get(p.id) || 0;
+            return terjual > 0
+              ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">${terjual.toLocaleString("id-ID")} terjual</span>`
+              : `<span class="text-[11px] text-outline italic">Belum ada penjualan</span>`;
+          })()}
           ${waButton}
         </div>
       </article>`;
   }
 
+  let unitsSoldByProduk = new Map();
+
+  async function loadUnitsSold() {
+    const { data, error } = await supabaseClient
+      .from("transaksi_penjualan")
+      .select("produk_id, jumlah");
+
+    if (error) {
+      console.error("Gagal memuat data penjualan:", error);
+      return new Map();
+    }
+
+    const totals = new Map();
+    (data || []).forEach((t) => {
+      if (!t.produk_id) return;
+      totals.set(t.produk_id, (totals.get(t.produk_id) || 0) + (t.jumlah || 0));
+    });
+    return totals;
+  }
+
   async function loadKatalogProduk() {
     const grid = document.getElementById("productGrid");
-    const { data, error } = await supabaseClient
-      .from("produk")
-      .select("id, nama, kategori, harga, deskripsi, image_url, upt:upt_id (nama, whatsapp)")
-      .eq("status", "aktif")
-      .order("created_at", { ascending: false });
+    const [produkResult, unitsSold] = await Promise.all([
+      supabaseClient
+        .from("produk")
+        .select("id, nama, kategori, harga, deskripsi, image_url, upt:upt_id (nama, whatsapp)")
+        .eq("status", "aktif")
+        .order("created_at", { ascending: false }),
+      loadUnitsSold(),
+    ]);
+
+    const { data, error } = produkResult;
+    unitsSoldByProduk = unitsSold;
 
     if (error) {
       grid.innerHTML = `<p class="col-span-full text-center text-red-500 py-12">Gagal memuat produk.</p>`;
