@@ -1046,9 +1046,230 @@
 
     tbody.innerHTML = data.map(renderUptRow).join("");
     tbody.removeAttribute("data-loading");
+    fillUptRowAggregates(data);
+  }
+
+  const CHANNEL_COLORS = {
+    WhatsApp: "#25D366",
+    Shopee: "#EE4D2D",
+    Tokopedia: "#03AC0E",
+    Offline: "#475569",
+    Lainnya: "#94A3B8",
+  };
+
+  const KATEGORI_COLORS = ["#0f254a", "#F59E0B", "#10B981", "#64748B", "#8B5CF6", "#EC4899", "#06B6D4"];
+
+  async function loadMonitoringAggregates() {
+    const [produkResult, transaksiResult, uptResult] = await Promise.all([
+      supabaseClient.from("produk").select("id, upt_id, nama, kategori, status"),
+      supabaseClient.from("transaksi_penjualan").select("upt_id, produk_id, jumlah, total_harga, channel"),
+      supabaseClient.from("upt").select("id, nama, wilayah"),
+    ]);
+
+    if (produkResult.error) console.error("Gagal memuat produk:", produkResult.error);
+    if (transaksiResult.error) console.error("Gagal memuat transaksi:", transaksiResult.error);
+    if (uptResult.error) console.error("Gagal memuat UPT:", uptResult.error);
+
+    const produkList = produkResult.data || [];
+    const transaksiList = transaksiResult.data || [];
+    const uptList = uptResult.data || [];
+
+    renderChannelDonut(transaksiList);
+    renderKategoriKomposisi(produkList);
+    renderWilayahDistribusi(transaksiList, uptList);
+    window.__uptAggregateData = { produkList, transaksiList };
+  }
+
+  function renderChannelDonut(transaksiList) {
+    const svg = document.getElementById("channel-donut-svg");
+    const centerLabel = document.getElementById("channel-donut-center");
+    const legendList = document.getElementById("channel-legend-list");
+    if (!svg || !legendList) return;
+
+    const omzetByChannel = new Map();
+    let totalOmzet = 0;
+    transaksiList.forEach((t) => {
+      const channel = t.channel || "Lainnya";
+      const nilai = Number(t.total_harga || 0);
+      omzetByChannel.set(channel, (omzetByChannel.get(channel) || 0) + nilai);
+      totalOmzet += nilai;
+    });
+
+    if (totalOmzet === 0) {
+      legendList.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Belum ada transaksi.</p>';
+      if (centerLabel) centerLabel.textContent = "-";
+      return;
+    }
+
+    const entries = Array.from(omzetByChannel.entries())
+      .filter(([, nilai]) => nilai > 0)
+      .sort((a, b) => b[1] - a[1]);
+
+    let offset = 0;
+    const circles = entries.map(([channel, nilai]) => {
+      const pct = (nilai / totalOmzet) * 100;
+      const color = CHANNEL_COLORS[channel] || CHANNEL_COLORS.Lainnya;
+      const circle = `<circle cx="18" cy="18" fill="none" r="15.9155" stroke="${color}" stroke-dasharray="${pct.toFixed(2)} ${(100 - pct).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" stroke-width="4.2"></circle>`;
+      offset += pct;
+      return circle;
+    });
+
+    svg.innerHTML = '<circle cx="18" cy="18" fill="none" r="15.9155" stroke="#F1F5F9" stroke-width="4.2"></circle>' + circles.join("");
+    if (centerLabel) centerLabel.textContent = entries.length.toString();
+
+    legendList.innerHTML = entries.map(([channel, nilai]) => {
+      const pct = ((nilai / totalOmzet) * 100).toFixed(1);
+      const color = CHANNEL_COLORS[channel] || CHANNEL_COLORS.Lainnya;
+      return `
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full" style="background-color: ${color}"></div>
+            <span class="text-xs font-bold text-primary block">${escapeHtml(channel)}</span>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-extrabold text-primary block">${pct}%</span>
+            <span class="text-[10px] font-medium text-slate-500">${formatRupiah(nilai)}</span>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  function renderKategoriKomposisi(produkList) {
+    const container = document.getElementById("kategori-komposisi-list");
+    const sektorCountEl = document.getElementById("kategori-sektor-count");
+    if (!container) return;
+
+    const aktifList = produkList.filter((p) => p.status === "aktif");
+    const countByKategori = new Map();
+    aktifList.forEach((p) => {
+      const kategori = p.kategori || "Lainnya";
+      countByKategori.set(kategori, (countByKategori.get(kategori) || 0) + 1);
+    });
+
+    if (aktifList.length === 0) {
+      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Belum ada produk aktif.</p>';
+      if (sektorCountEl) sektorCountEl.textContent = "0 Sektor";
+      return;
+    }
+
+    const entries = Array.from(countByKategori.entries()).sort((a, b) => b[1] - a[1]);
+    if (sektorCountEl) sektorCountEl.textContent = `${entries.length} Sektor`;
+
+    container.innerHTML = entries.map(([kategori, count], i) => {
+      const pct = ((count / aktifList.length) * 100).toFixed(0);
+      const color = KATEGORI_COLORS[i % KATEGORI_COLORS.length];
+      return `
+        <div>
+          <div class="flex justify-between items-center mb-1 text-xs">
+            <span class="font-semibold text-slate-800 flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${color}"></span>
+              ${escapeHtml(kategori)}
+            </span>
+            <span class="font-extrabold" style="color: ${color}">${pct}% <span class="font-medium text-slate-500">(${count} produk)</span></span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div class="h-2 rounded-full" style="width: ${pct}%; background-color: ${color}"></div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  function renderWilayahDistribusi(transaksiList, uptList) {
+    const container = document.getElementById("wilayah-distribusi-list");
+    if (!container) return;
+
+    const wilayahByUptId = new Map(uptList.map((u) => [u.id, u.wilayah || "Belum Ditentukan"]));
+    const uptCountByWilayah = new Map();
+    uptList.forEach((u) => {
+      const wilayah = u.wilayah || "Belum Ditentukan";
+      uptCountByWilayah.set(wilayah, (uptCountByWilayah.get(wilayah) || 0) + 1);
+    });
+
+    const omzetByWilayah = new Map();
+    let totalOmzet = 0;
+    transaksiList.forEach((t) => {
+      const wilayah = wilayahByUptId.get(t.upt_id) || "Belum Ditentukan";
+      const nilai = Number(t.total_harga || 0);
+      omzetByWilayah.set(wilayah, (omzetByWilayah.get(wilayah) || 0) + nilai);
+      totalOmzet += nilai;
+    });
+
+    const allWilayah = Array.from(uptCountByWilayah.keys()).sort();
+    container.innerHTML = allWilayah.map((wilayah) => {
+      const omzet = omzetByWilayah.get(wilayah) || 0;
+      const pct = totalOmzet > 0 ? ((omzet / totalOmzet) * 100).toFixed(1) : "0.0";
+      const jumlahUpt = uptCountByWilayah.get(wilayah);
+      return `
+        <div class="p-2 bg-white rounded-lg border border-slate-200">
+          <div class="flex justify-between items-center">
+            <span class="text-[11px] font-bold text-slate-700">${escapeHtml(wilayah)}</span>
+            <span class="text-[10px] font-extrabold text-primary">${pct}%</span>
+          </div>
+          <span class="text-xs font-extrabold text-primary block mt-0.5">${formatRupiah(omzet)}</span>
+          <span class="text-[10px] text-slate-500">${jumlahUpt} UPT</span>
+        </div>`;
+    }).join("");
+  }
+
+  function fillUptRowAggregates(uptRows) {
+    const data = window.__uptAggregateData;
+    if (!data) {
+      setTimeout(() => fillUptRowAggregates(uptRows), 300);
+      return;
+    }
+    const { produkList, transaksiList } = data;
+
+    uptRows.forEach((upt) => {
+      const row = document.querySelector(`[data-upt-row="${upt.id}"]`);
+      if (!row) return;
+
+      const ownProduk = produkList.filter((p) => p.upt_id === upt.id);
+      const ownProdukIds = new Set(ownProduk.map((p) => p.id));
+      const ownTransaksi = transaksiList.filter((t) => t.upt_id === upt.id);
+
+      const volume = ownTransaksi.reduce((sum, t) => sum + Number(t.jumlah || 0), 0);
+      const omzet = ownTransaksi.reduce((sum, t) => sum + Number(t.total_harga || 0), 0);
+
+      const volumeByProduk = new Map();
+      ownTransaksi.forEach((t) => {
+        if (!ownProdukIds.has(t.produk_id)) return;
+        volumeByProduk.set(t.produk_id, (volumeByProduk.get(t.produk_id) || 0) + Number(t.jumlah || 0));
+      });
+
+      let topProdukNama = null;
+      let topVolume = 0;
+      volumeByProduk.forEach((vol, produkId) => {
+        if (vol > topVolume) {
+          topVolume = vol;
+          const produk = ownProduk.find((p) => p.id === produkId);
+          topProdukNama = produk ? produk.nama : null;
+        }
+      });
+
+      const komoditasCell = row.querySelector('[data-cell="komoditas"]');
+      const volumeCell = row.querySelector('[data-cell="volume"]');
+      const omzetCell = row.querySelector('[data-cell="omzet"]');
+
+      if (komoditasCell) {
+        komoditasCell.innerHTML = topProdukNama
+          ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 font-medium text-slate-800 border border-slate-200">${escapeHtml(topProdukNama)}</span>`
+          : `<span class="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 font-medium text-slate-500 border border-slate-200">Belum ada penjualan</span>`;
+      }
+      if (volumeCell) {
+        volumeCell.textContent = volume > 0 ? `${volume.toLocaleString("id-ID")} Unit` : "-";
+        volumeCell.classList.toggle("text-slate-400", volume === 0);
+        volumeCell.classList.toggle("text-slate-800", volume > 0);
+      }
+      if (omzetCell) {
+        omzetCell.textContent = omzet > 0 ? formatRupiah(omzet) : "-";
+        omzetCell.classList.toggle("text-slate-400", omzet === 0);
+        omzetCell.classList.toggle("text-primary", omzet > 0);
+      }
+    });
   }
 
   loadKpiCards();
   loadUptTable();
+  loadMonitoringAggregates();
 </script>
 </body></html>
