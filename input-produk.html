@@ -104,6 +104,26 @@
       Simpan Produk
     </button>
   </form>
+
+  <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 mt-6">
+    <h2 class="font-bold text-base text-primary mb-4">Riwayat Transaksi</h2>
+    <div class="overflow-x-auto max-h-[400px] overflow-y-auto rounded-lg border border-border-subtle/80">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead class="sticky top-0 bg-surface-container">
+          <tr class="text-slate-700 font-extrabold uppercase tracking-wider text-[10px]">
+            <th class="py-2.5 px-3">Tanggal</th>
+            <th class="py-2.5 px-3">Produk</th>
+            <th class="py-2.5 px-3 text-right">Jumlah</th>
+            <th class="py-2.5 px-3 text-right">Total</th>
+            <th class="py-2.5 px-3">Channel</th>
+          </tr>
+        </thead>
+        <tbody id="riwayat-table-body" class="divide-y divide-border-subtle/70 bg-white">
+          <tr><td colspan="5" class="py-4 px-3 text-center text-slate-400">Memuat riwayat...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -116,6 +136,46 @@
   const logoutBtn = document.getElementById("logout-btn");
 
   let currentUptId = null;
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+
+  function formatRupiah(n) {
+    return "Rp " + Number(n).toLocaleString("id-ID");
+  }
+
+  async function renderRiwayatTransaksi() {
+    const tbody = document.getElementById("riwayat-table-body");
+    const { data, error } = await supabaseClient
+      .from("transaksi_penjualan")
+      .select("tanggal_transaksi, jumlah, total_harga, channel, produk:produk_id (nama)")
+      .eq("upt_id", currentUptId)
+      .order("tanggal_transaksi", { ascending: false })
+      .limit(100);
+
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="5" class="py-4 px-3 text-center text-red-500">Gagal memuat riwayat.</td></tr>`;
+      console.error(error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="py-4 px-3 text-center text-slate-400">Belum ada transaksi.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map((t) => `
+      <tr>
+        <td class="py-2.5 px-3">${escapeHtml(t.tanggal_transaksi)}</td>
+        <td class="py-2.5 px-3">${escapeHtml(t.produk ? t.produk.nama : "-")}</td>
+        <td class="py-2.5 px-3 text-right">${escapeHtml(String(t.jumlah))}</td>
+        <td class="py-2.5 px-3 text-right font-semibold">${escapeHtml(formatRupiah(t.total_harga))}</td>
+        <td class="py-2.5 px-3">${escapeHtml(t.channel || "-")}</td>
+      </tr>`).join("");
+  }
 
   function showMessage(text, type) {
     messageBox.textContent = text;
@@ -243,7 +303,9 @@
     }
   });
 
-  loadAccountUpt();
+  loadAccountUpt().then(() => {
+    if (currentUptId) renderRiwayatTransaksi();
+  });
 </script>
 </body>
 </html>
