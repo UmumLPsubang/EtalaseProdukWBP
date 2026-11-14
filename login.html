@@ -57,7 +57,7 @@
 
   // Kalau sudah login, langsung lempar ke form input produk.
   supabaseClient.auth.getSession().then(({ data }) => {
-    if (data.session) window.location.href = "/input-produk";
+    if (data.session) window.location.href = "/dashboard";
   });
 
   form.addEventListener("submit", async (e) => {
@@ -79,7 +79,7 @@
       return;
     }
 
-    window.location.href = "/input-produk";
+    window.location.href = "/dashboard";
   });
 </script>
 </body>
