@@ -27,26 +27,21 @@ async function requireUptSession() {
   };
 }
 
-function renderSidebar(activePage, uptInfo) {
-  const namaTop = document.getElementById("sidebar-upt-nama");
-  const namaBottom = document.getElementById("sidebar-upt-nama-bawah");
-  const kodeEl = document.getElementById("sidebar-upt-kode");
+function renderHeader(activePage, uptInfo) {
+  const namaEl = document.getElementById("header-upt-nama");
+  if (namaEl) namaEl.textContent = uptInfo ? `${uptInfo.nama} • Kode: ${uptInfo.kode}` : "-";
 
-  if (namaTop) namaTop.textContent = uptInfo ? uptInfo.nama : "-";
-  if (namaBottom) namaBottom.textContent = uptInfo ? uptInfo.nama : "-";
-  if (kodeEl) kodeEl.textContent = uptInfo ? `Kode: ${uptInfo.kode}` : "-";
-
-  document.querySelectorAll(".sidebar-link").forEach((link) => {
+  document.querySelectorAll(".header-link").forEach((link) => {
     if (link.dataset.page === activePage) {
-      link.classList.add("bg-white/15", "text-white");
-      link.classList.remove("text-blue-100");
+      link.classList.add("bg-primary-container", "text-white", "shadow-sm");
+      link.classList.remove("text-on-surface-variant");
     } else {
-      link.classList.remove("bg-white/15", "text-white");
-      link.classList.add("text-blue-100");
+      link.classList.remove("bg-primary-container", "text-white", "shadow-sm");
+      link.classList.add("text-on-surface-variant");
     }
   });
 
-  const logoutBtn = document.getElementById("sidebar-logout-btn");
+  const logoutBtn = document.getElementById("header-logout-btn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", async () => {
       await supabaseClient.auth.signOut();
