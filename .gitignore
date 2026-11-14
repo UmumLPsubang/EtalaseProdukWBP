@@ -156,3 +156,7 @@ vite.config.ts.timestamp-*
 
 # graphify knowledge-graph output (local tooling, not part of the site)
 graphify-out/
+
+# Admin scripts: never commit secrets or generated credentials
+scripts/.env.local
+scripts/output/

@@ -1,0 +1,12 @@
+{
+  "name": "etalase-wbp-admin-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "create-upt-accounts": "node create-upt-accounts.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "dotenv": "^16.4.5"
+  }
+}
