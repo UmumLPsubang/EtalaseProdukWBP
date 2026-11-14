@@ -1,7 +1,11 @@
 function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-  }[c]));
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function initialsFromKode(kode) {
@@ -37,8 +41,9 @@ function renderUptRow(upt, index) {
     </tr>`;
 }
 
-function formatRupiah(n) {
-  return "Rp " + Number(n).toLocaleString("id-ID");
+function formatRupiah(num) {
+  const n = Number(num) || 0;
+  return "Rp " + n.toLocaleString("id-ID");
 }
 
 async function loadKpiCards() {
