@@ -93,6 +93,9 @@ begin
   end if;
 
   select to_jsonb(u) into v_before from upt u where u.id = p_upt_id;
+  if v_before is null then
+    raise exception 'UPT tidak ditemukan';
+  end if;
 
   update upt
   set nama = p_nama,
