@@ -41,6 +41,18 @@
   </div>
 </header>
 
+<section class="max-w-2xl mx-auto px-4 sm:px-8 pt-6">
+  <div class="bg-white rounded-2xl shadow-sm border border-border-subtle p-5 flex flex-col sm:flex-row sm:items-end gap-3">
+    <div class="flex-1">
+      <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="whatsapp-number">Nomor WhatsApp UPT (untuk tombol pesan di katalog)</label>
+      <input id="whatsapp-number" type="text" placeholder="Contoh: 628123456789 (tanpa +/0 di depan)"
+        class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+    </div>
+    <button id="save-whatsapp-btn" type="button" class="px-5 py-2.5 rounded-lg bg-primary-container text-white font-bold text-sm hover:bg-primary transition shrink-0">Simpan Nomor WA</button>
+  </div>
+  <p id="whatsapp-message" class="hidden text-xs font-semibold mt-2 px-1"></p>
+</section>
+
 <main class="max-w-2xl mx-auto px-4 sm:px-8 py-8">
   <form id="produk-form" class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 space-y-5">
 
@@ -122,7 +134,7 @@
 
     const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
-      .select("upt_id, upt:upt_id (nama, kode)")
+      .select("upt_id, upt:upt_id (nama, kode, whatsapp)")
       .eq("id", session.user.id)
       .single();
 
@@ -135,11 +147,41 @@
 
     currentUptId = profile.upt_id;
     uptLabel.textContent = `Input produk untuk: ${profile.upt.nama} (${profile.upt.kode})`;
+    document.getElementById("whatsapp-number").value = profile.upt.whatsapp || "";
   }
 
   logoutBtn.addEventListener("click", async () => {
     await supabaseClient.auth.signOut();
     window.location.href = "/login";
+  });
+
+  document.getElementById("save-whatsapp-btn").addEventListener("click", async () => {
+    const msgEl = document.getElementById("whatsapp-message");
+    const value = document.getElementById("whatsapp-number").value.trim();
+
+    if (!currentUptId) {
+      msgEl.textContent = "Tunggu data akun selesai dimuat, lalu coba lagi.";
+      msgEl.className = "text-xs font-semibold mt-2 px-1 text-red-600";
+      msgEl.classList.remove("hidden");
+      return;
+    }
+
+    if (!/^62\d{8,13}$/.test(value)) {
+      msgEl.textContent = "Format nomor salah. Gunakan format 62xxxxxxxxxx (tanpa +/0 di depan).";
+      msgEl.className = "text-xs font-semibold mt-2 px-1 text-red-600";
+      msgEl.classList.remove("hidden");
+      return;
+    }
+
+    const { error } = await supabaseClient.from("upt").update({ whatsapp: value }).eq("id", currentUptId);
+    msgEl.classList.remove("hidden");
+    if (error) {
+      msgEl.textContent = "Gagal menyimpan: " + error.message;
+      msgEl.className = "text-xs font-semibold mt-2 px-1 text-red-600";
+    } else {
+      msgEl.textContent = "Nomor WhatsApp berhasil disimpan.";
+      msgEl.className = "text-xs font-semibold mt-2 px-1 text-emerald-600";
+    }
   });
 
   async function uploadFoto(file, uptId) {
