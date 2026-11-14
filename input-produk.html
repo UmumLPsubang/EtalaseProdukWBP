@@ -221,7 +221,7 @@
     else if (!produk) errors.push(`produk "${namaProduk}" tidak ditemukan`);
 
     const jumlah = Number(row.jumlah);
-    if (!row.jumlah || isNaN(jumlah) || jumlah <= 0) errors.push("jumlah harus angka positif");
+    if (!row.jumlah || isNaN(jumlah) || jumlah <= 0 || !Number.isInteger(jumlah)) errors.push("jumlah harus bilangan bulat positif");
 
     const total = Number(row.total_harga);
     if (!row.total_harga || isNaN(total) || total < 0) errors.push("total_harga harus angka");
@@ -230,7 +230,13 @@
     if (!VALID_CHANNELS.includes(channel)) errors.push(`channel "${channel}" tidak valid`);
 
     const tanggal = (row.tanggal || "").trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) errors.push("tanggal harus format YYYY-MM-DD");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) {
+      errors.push("tanggal harus format YYYY-MM-DD");
+    } else {
+      const date = new Date(tanggal + "T00:00:00");
+      const reconstructed = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      if (reconstructed !== tanggal) errors.push("tanggal bukan tanggal kalender yang valid");
+    }
 
     if (errors.length > 0) return { valid: false, rowIndex, error: errors.join("; ") };
 
@@ -298,11 +304,14 @@
   document.getElementById("csv-upload-btn").addEventListener("click", () => {
     const fileInput = document.getElementById("csv-file-input");
     const resultBox = document.getElementById("csv-result");
+    const csvUploadBtn = document.getElementById("csv-upload-btn");
     const file = fileInput.files[0];
     if (!file) {
       alert("Pilih file CSV terlebih dahulu.");
       return;
     }
+
+    csvUploadBtn.disabled = true;
 
     Papa.parse(file, {
       header: true,
@@ -313,6 +322,10 @@
         const failedRows = [];
 
         results.data.forEach((row, i) => {
+          const isBlankTemplateRow = ["jumlah", "total_harga", "channel", "tanggal"]
+            .every((field) => !(row[field] || "").trim());
+          if (isBlankTemplateRow) return;
+
           const outcome = validateCsvRow(row, i + 2, produkByName);
           if (outcome.valid) validRows.push(outcome.data);
           else failedRows.push(outcome);
@@ -339,10 +352,12 @@
 
         if (insertedCount > 0) renderRiwayatTransaksi();
         fileInput.value = "";
+        csvUploadBtn.disabled = false;
       },
       error: (err) => {
         resultBox.classList.remove("hidden");
         resultBox.innerHTML = `<p class="text-red-600 font-semibold">Gagal membaca file CSV: ${escapeHtml(err.message)}</p>`;
+        csvUploadBtn.disabled = false;
       },
     });
   });

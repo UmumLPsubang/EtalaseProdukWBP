@@ -36,14 +36,8 @@
 <span class="w-2.5 h-2.5 rounded-full bg-success-green animate-pulse"></span>
             100% Stok Siap Kirim
           </div>
-<div class="relative min-w-[220px]"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none text-title-md">domain</span><select class="w-full h-12 pl-10 pr-9 bg-surface-canvas rounded-lg text-body-md font-body-md text-on-surface focus:outline-none focus:bg-surface-card cursor-pointer appearance-none border border-transparent hover:border-border-strong transition-all" id="lapasFilterSelect"><option value="all">Semua Lapas &amp; Rutan (33 UPT)</option><option value="sukamiskin">Lapas Kelas I Sukamiskin Bandung</option><option value="cirebon">Lapas Kelas I Cirebon</option><option value="subang">Lapas Kelas IIA Subang</option><option value="lpp-bandung">Lapas Perempuan Kelas IIA Bandung</option><option value="narkotika-cirebon">Lapas Narkotika Kelas IIA Cirebon</option><option value="garut">Lapas Kelas IIA Garut</option><option value="sumedang">Lapas Kelas IIB Sumedang</option><option value="rutan-bandung">Rutan Kelas I Bandung (Kebonwaru)</option><option value="karawang">Lapas Kelas IIA Karawang</option><option value="cibinong">Lapas Kelas IIA Cibinong / Bogor</option></select><span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span></div><div class="relative min-w-[200px]">
-<select class="w-full h-12 px-4 bg-surface-canvas rounded-lg text-body-md font-body-md text-on-surface focus:outline-none cursor-pointer appearance-none" id="sortSelect"><option value="termahal" selected="selected">Harga: Termahal ke Termurah</option><option value="termurah">Harga: Termurah ke Termahal</option><option value="populer">Paling Banyak Dipesan</option><option value="terbaru">Karya Terbaru Giatja</option></select>
-<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
 </div>
 </div>
-</div>
-<!-- Category Filter Pills -->
-<div class="flex items-center gap-2 overflow-x-auto pb-1" id="categoryChipsContainer"><button class="filter-pill active-pill px-4 py-2 rounded-full text-label-md font-label-md whitespace-nowrap transition-all bg-primary text-on-primary shadow-sm" data-category="all" type="button">Semua Produk Jabar (8)</button><button class="filter-pill px-4 py-2 rounded-full text-label-md font-label-md whitespace-nowrap transition-all bg-surface-canvas text-on-surface hover:bg-surface-container" data-category="kuliner" type="button">Kopi &amp; Kuliner Pasundan</button><button class="filter-pill px-4 py-2 rounded-full text-label-md font-label-md whitespace-nowrap transition-all bg-surface-canvas text-on-surface hover:bg-surface-container" data-category="kayu" type="button">Mebel &amp; Kayu Ukir Jati</button><button class="filter-pill px-4 py-2 rounded-full text-label-md font-label-md whitespace-nowrap transition-all bg-surface-canvas text-on-surface hover:bg-surface-container" data-category="anyaman" type="button">Kerajinan Anyaman &amp; Kriya</button><button class="filter-pill px-4 py-2 rounded-full text-label-md font-label-md whitespace-nowrap transition-all bg-surface-canvas text-on-surface hover:bg-surface-container" data-category="tekstil" type="button">Batik &amp; Tenun Jabar</button><button class="filter-pill px-4 py-2 rounded-full text-label-md font-label-md whitespace-nowrap transition-all bg-surface-canvas text-on-surface hover:bg-surface-container" data-category="kulit" type="button">Aksesoris Kulit Garutan</button></div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-space-lg" id="productGrid">
   <p class="col-span-full text-center text-outline py-12">Memuat produk...</p>
@@ -147,11 +141,11 @@
   function renderProdukCard(p) {
     const link = waLink(p);
     const waButton = link
-      ? `<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#25D366] hover:bg-[#20ba59] text-white text-sm font-bold transition-all shadow-sm" href="${link}" rel="noopener noreferrer" target="_blank">Pesan via WhatsApp Langsung</a>`
+      ? `<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#25D366] hover:bg-[#20ba59] text-white text-sm font-bold transition-all shadow-sm" href="${escapeHtml(link)}" rel="noopener noreferrer" target="_blank">Pesan via WhatsApp Langsung</a>`
       : `<p class="text-xs text-outline italic px-1">Nomor WA belum tersedia, hubungi Divisi Pemasyarakatan Kanwil Jabar.</p>`;
 
     const img = p.image_url
-      ? `<img alt="${escapeHtml(p.nama)}" class="w-full h-44 object-cover" src="${p.image_url}">`
+      ? `<img alt="${escapeHtml(p.nama)}" class="w-full h-44 object-cover" src="${escapeHtml(p.image_url)}">`
       : `<div class="w-full h-44 bg-surface-canvas flex items-center justify-center text-outline text-xs">Tidak ada foto</div>`;
 
     return `
