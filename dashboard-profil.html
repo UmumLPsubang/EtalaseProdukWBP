@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Profil UPT - Panel UPT Karya WBP</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: "#00102d",
+          "primary-container": "#0f254a",
+          "surface-canvas": "#F4F6FA",
+          "surface-card": "#FFFFFF",
+          "border-subtle": "#E2E8F0",
+        },
+        fontFamily: { sans: ["Plus Jakarta Sans", "sans-serif"] },
+      },
+    },
+  };
+</script>
+<style>body { font-family: "Plus Jakarta Sans", sans-serif; }</style>
+</head>
+<body class="bg-surface-canvas text-primary min-h-screen">
+<div class="min-h-screen flex">
+  <aside class="w-64 bg-primary text-white flex flex-col fixed inset-y-0 left-0 z-40">
+    <div class="p-5 border-b border-white/10">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-primary-container flex items-center justify-center ring-1 ring-white/20 shrink-0">
+          <span class="material-symbols-outlined text-amber-300 text-[20px]">verified</span>
+        </div>
+        <div class="min-w-0">
+          <div class="font-bold text-sm leading-tight">Panel UPT</div>
+          <div class="text-[11px] text-blue-200/80 truncate" id="sidebar-upt-nama">Memuat...</div>
+        </div>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      <a href="/dashboard" data-page="dashboard" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">dashboard</span>Dashboard
+      </a>
+      <a href="/dashboard-produk" data-page="produk" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">inventory_2</span>Produk
+      </a>
+      <a href="/dashboard-penjualan" data-page="penjualan" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">point_of_sale</span>Penjualan
+      </a>
+      <a href="/dashboard-profil" data-page="profil" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">storefront</span>Profil UPT
+      </a>
+    </nav>
+    <div class="p-4 border-t border-white/10 space-y-3">
+      <div class="text-xs">
+        <div class="font-bold" id="sidebar-upt-nama-bawah">-</div>
+        <div class="text-blue-200/70" id="sidebar-upt-kode">-</div>
+      </div>
+      <a href="/" class="flex items-center gap-2 text-xs font-semibold text-blue-200 hover:text-white transition">
+        <span class="material-symbols-outlined text-[16px]">open_in_new</span>Lihat Katalog
+      </a>
+      <button id="sidebar-logout-btn" class="flex items-center gap-2 text-xs font-semibold text-blue-200 hover:text-white transition">
+        <span class="material-symbols-outlined text-[16px]">logout</span>Keluar
+      </button>
+    </div>
+  </aside>
+
+  <main class="flex-1 ml-64 min-h-screen p-6 sm:p-8 max-w-2xl">
+    <h1 class="font-extrabold text-xl text-primary mb-6">Profil UPT</h1>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-border-subtle p-5 flex flex-col sm:flex-row sm:items-end gap-3">
+      <div class="flex-1">
+        <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="whatsapp-number">Nomor WhatsApp UPT (untuk tombol pesan di katalog)</label>
+        <input id="whatsapp-number" type="text" placeholder="Contoh: 628123456789 (tanpa +/0 di depan)"
+          class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+      </div>
+      <button id="save-whatsapp-btn" type="button" class="px-5 py-2.5 rounded-lg bg-primary-container text-white font-bold text-sm hover:bg-primary transition shrink-0">Simpan Nomor WA</button>
+    </div>
+    <p id="whatsapp-message" class="hidden text-xs font-semibold mt-2 px-1"></p>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="/assets/js/supabase-client.js"></script>
+<script src="/assets/js/upt-dashboard.js"></script>
+<script>
+  let currentUptId = null;
+
+  document.getElementById("save-whatsapp-btn").addEventListener("click", async () => {
+    const msgEl = document.getElementById("whatsapp-message");
+    const value = document.getElementById("whatsapp-number").value.trim();
+
+    if (!currentUptId) {
+      msgEl.textContent = "Tunggu data akun selesai dimuat, lalu coba lagi.";
+      msgEl.className = "text-xs font-semibold mt-2 px-1 text-red-600";
+      msgEl.classList.remove("hidden");
+      return;
+    }
+
+    if (!/^62\d{8,13}$/.test(value)) {
+      msgEl.textContent = "Format nomor salah. Gunakan format 62xxxxxxxxxx (tanpa +/0 di depan).";
+      msgEl.className = "text-xs font-semibold mt-2 px-1 text-red-600";
+      msgEl.classList.remove("hidden");
+      return;
+    }
+
+    const { error } = await supabaseClient.from("upt").update({ whatsapp: value }).eq("id", currentUptId);
+    msgEl.classList.remove("hidden");
+    if (error) {
+      msgEl.textContent = "Gagal menyimpan: " + error.message;
+      msgEl.className = "text-xs font-semibold mt-2 px-1 text-red-600";
+    } else {
+      msgEl.textContent = "Nomor WhatsApp berhasil disimpan.";
+      msgEl.className = "text-xs font-semibold mt-2 px-1 text-emerald-600";
+    }
+  });
+
+  (async () => {
+    const uptInfo = await requireUptSession();
+    if (!uptInfo) return;
+    currentUptId = uptInfo.uptId;
+    renderSidebar("profil", uptInfo);
+    document.getElementById("whatsapp-number").value = uptInfo.whatsapp || "";
+  })();
+</script>
+</body>
+</html>
