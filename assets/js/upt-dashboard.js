@@ -13,6 +13,9 @@ async function requireUptSession() {
 
   if (error || !profile) {
     console.error("Gagal memuat profil UPT:", error);
+    alert("Akun ini belum terhubung ke UPT manapun. Hubungi admin, lalu login ulang.");
+    await supabaseClient.auth.signOut();
+    window.location.href = "/login";
     return null;
   }
 

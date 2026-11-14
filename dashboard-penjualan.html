@@ -339,7 +339,7 @@
     URL.revokeObjectURL(url);
   });
 
-  document.getElementById("csv-upload-btn").addEventListener("click", () => {
+  document.getElementById("csv-upload-btn").addEventListener("click", async () => {
     const fileInput = document.getElementById("csv-file-input");
     const resultBox = document.getElementById("csv-result");
     const uploadBtn = document.getElementById("csv-upload-btn");
@@ -348,6 +348,8 @@
       alert("Pilih file CSV terlebih dahulu.");
       return;
     }
+
+    await loadProdukDropdown();
 
     uploadBtn.disabled = true;
 

@@ -40,3 +40,21 @@ create policy "UPT bisa catat transaksi sendiri" on transaksi_penjualan
         and p.upt_id = (select upt_id from profiles where id = auth.uid())
     )
   );
+
+-- Produk yang dinonaktifkan di UI tetap bisa dicatat transaksinya lewat panggilan
+-- API langsung / tab browser lama (dropdown produk di browser bisa basi). Policy
+-- di atas diganti agar juga mensyaratkan produk berstatus aktif saat insert.
+drop policy if exists "UPT bisa catat transaksi sendiri" on transaksi_penjualan;
+
+create policy "UPT bisa catat transaksi sendiri" on transaksi_penjualan
+  for insert
+  to authenticated
+  with check (
+    upt_id = (select upt_id from profiles where id = auth.uid())
+    and exists (
+      select 1 from produk p
+      where p.id = produk_id
+        and p.upt_id = (select upt_id from profiles where id = auth.uid())
+        and p.status = 'aktif'
+    )
+  );

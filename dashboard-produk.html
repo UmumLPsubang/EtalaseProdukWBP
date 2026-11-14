@@ -179,6 +179,13 @@
     submitBtn.textContent = "Menyimpan...";
     messageBox.classList.add("hidden");
 
+    if (!currentUptId) {
+      showMessage("Tunggu data akun selesai dimuat, lalu coba lagi.", "error");
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Simpan Produk";
+      return;
+    }
+
     try {
       const nama = document.getElementById("nama").value.trim();
       const kategori = document.getElementById("kategori").value;
@@ -269,9 +276,14 @@
         const id = btn.dataset.id;
         const newStatus = btn.dataset.currentStatus === "aktif" ? "nonaktif" : "aktif";
         btn.disabled = true;
-        const { error: updateError } = await supabaseClient.from("produk").update({ status: newStatus }).eq("id", id);
+        const { data: updateData, error: updateError } = await supabaseClient.from("produk").update({ status: newStatus }).eq("id", id).select();
         if (updateError) {
           alert("Gagal mengubah status: " + updateError.message);
+          btn.disabled = false;
+          return;
+        }
+        if (!updateData || updateData.length === 0) {
+          alert("Perubahan tidak tersimpan (produk mungkin sudah tidak ada atau bukan milik Anda).");
           btn.disabled = false;
           return;
         }
@@ -286,9 +298,14 @@
         const confirmed = confirm(`Yakin hapus "${nama}"? Transaksi lama yang pernah pakai produk ini akan kehilangan nama produknya. Tindakan ini tidak bisa dibatalkan.`);
         if (!confirmed) return;
         btn.disabled = true;
-        const { error: deleteError } = await supabaseClient.from("produk").delete().eq("id", id);
+        const { data: deleteData, error: deleteError } = await supabaseClient.from("produk").delete().eq("id", id).select();
         if (deleteError) {
           alert("Gagal menghapus produk: " + deleteError.message);
+          btn.disabled = false;
+          return;
+        }
+        if (!deleteData || deleteData.length === 0) {
+          alert("Produk tidak terhapus (mungkin sudah tidak ada atau bukan milik Anda).");
           btn.disabled = false;
           return;
         }
