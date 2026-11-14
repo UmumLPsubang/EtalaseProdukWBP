@@ -154,6 +154,24 @@
     </form>
   </section>
 
+  <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 mt-6 space-y-4">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <h2 class="font-bold text-base text-primary">Input Penjualan - Upload CSV (Bulk)</h2>
+      <button id="download-template-btn" type="button" class="text-xs font-bold text-primary-container hover:underline">Download Template CSV</button>
+    </div>
+    <p class="text-xs text-slate-500">
+      Format kolom wajib: <code class="bg-slate-100 px-1 rounded">nama_produk,jumlah,total_harga,channel,tanggal</code>.
+      Channel harus salah satu dari: WhatsApp, Shopee, Tokopedia, Offline, Lainnya. Tanggal format YYYY-MM-DD.
+    </p>
+    <input id="csv-file-input" type="file" accept=".csv,text/csv"
+      class="w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:font-semibold file:text-xs hover:file:bg-slate-200">
+    <button id="csv-upload-btn" type="button"
+      class="px-5 py-2.5 rounded-lg bg-primary-container text-white font-bold text-sm hover:bg-primary transition disabled:opacity-50">
+      Proses Upload
+    </button>
+    <div id="csv-result" class="hidden text-sm space-y-2"></div>
+  </section>
+
   <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 mt-6">
     <h2 class="font-bold text-base text-primary mb-4">Riwayat Transaksi</h2>
     <div class="overflow-x-auto max-h-[400px] overflow-y-auto rounded-lg border border-border-subtle/80">
@@ -176,6 +194,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="/assets/js/supabase-client.js"></script>
 <script>
   const form = document.getElementById("produk-form");
@@ -185,6 +204,49 @@
   const logoutBtn = document.getElementById("logout-btn");
 
   let currentUptId = null;
+
+  const VALID_CHANNELS = ["WhatsApp", "Shopee", "Tokopedia", "Offline", "Lainnya"];
+
+  function generateTemplateCsv() {
+    const header = "nama_produk,jumlah,total_harga,channel,tanggal\n";
+    const rows = ownProdukList.map((p) => `"${p.nama.replace(/"/g, '""')}",,,,`).join("\n");
+    return header + rows;
+  }
+
+  function validateCsvRow(row, rowIndex, produkByName) {
+    const errors = [];
+    const namaProduk = (row.nama_produk || "").trim();
+    const produk = produkByName.get(namaProduk.toLowerCase());
+    if (!namaProduk) errors.push("nama_produk kosong");
+    else if (!produk) errors.push(`produk "${namaProduk}" tidak ditemukan`);
+
+    const jumlah = Number(row.jumlah);
+    if (!row.jumlah || isNaN(jumlah) || jumlah <= 0) errors.push("jumlah harus angka positif");
+
+    const total = Number(row.total_harga);
+    if (!row.total_harga || isNaN(total) || total < 0) errors.push("total_harga harus angka");
+
+    const channel = (row.channel || "").trim();
+    if (!VALID_CHANNELS.includes(channel)) errors.push(`channel "${channel}" tidak valid`);
+
+    const tanggal = (row.tanggal || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) errors.push("tanggal harus format YYYY-MM-DD");
+
+    if (errors.length > 0) return { valid: false, rowIndex, error: errors.join("; ") };
+
+    return {
+      valid: true,
+      data: {
+        upt_id: currentUptId,
+        produk_id: produk.id,
+        jumlah,
+        total_harga: total,
+        channel,
+        tanggal_transaksi: tanggal,
+        status_pengiriman: "selesai",
+      },
+    };
+  }
 
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, (c) => ({
@@ -217,6 +279,73 @@
       '<option value="" disabled selected>Pilih produk...</option>' +
       data.map((p) => `<option value="${p.id}">${escapeHtml(p.nama)}</option>`).join("");
   }
+
+  document.getElementById("download-template-btn").addEventListener("click", () => {
+    if (ownProdukList.length === 0) {
+      alert("Belum ada produk terdaftar. Tambahkan produk dulu sebelum download template.");
+      return;
+    }
+    const csv = generateTemplateCsv();
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "template-penjualan.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById("csv-upload-btn").addEventListener("click", () => {
+    const fileInput = document.getElementById("csv-file-input");
+    const resultBox = document.getElementById("csv-result");
+    const file = fileInput.files[0];
+    if (!file) {
+      alert("Pilih file CSV terlebih dahulu.");
+      return;
+    }
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const produkByName = new Map(ownProdukList.map((p) => [p.nama.toLowerCase(), p]));
+        const validRows = [];
+        const failedRows = [];
+
+        results.data.forEach((row, i) => {
+          const outcome = validateCsvRow(row, i + 2, produkByName);
+          if (outcome.valid) validRows.push(outcome.data);
+          else failedRows.push(outcome);
+        });
+
+        let insertedCount = 0;
+        if (validRows.length > 0) {
+          const { error, data } = await supabaseClient.from("transaksi_penjualan").insert(validRows).select();
+          if (error) {
+            failedRows.push({ rowIndex: "-", error: "Gagal insert batch: " + error.message });
+          } else {
+            insertedCount = data.length;
+          }
+        }
+
+        resultBox.classList.remove("hidden");
+        let html = `<p class="font-bold ${insertedCount > 0 ? "text-emerald-700" : "text-slate-600"}">${insertedCount} baris berhasil disimpan, ${failedRows.length} baris gagal.</p>`;
+        if (failedRows.length > 0) {
+          html += `<table class="w-full text-xs border-collapse mt-2"><thead><tr class="text-left text-slate-500"><th class="py-1 pr-3">Baris</th><th class="py-1">Alasan</th></tr></thead><tbody>`;
+          html += failedRows.map((f) => `<tr><td class="py-1 pr-3 font-semibold">${escapeHtml(String(f.rowIndex))}</td><td class="py-1 text-red-600">${escapeHtml(f.error)}</td></tr>`).join("");
+          html += `</tbody></table>`;
+        }
+        resultBox.innerHTML = html;
+
+        if (insertedCount > 0) renderRiwayatTransaksi();
+        fileInput.value = "";
+      },
+      error: (err) => {
+        resultBox.classList.remove("hidden");
+        resultBox.innerHTML = `<p class="text-red-600 font-semibold">Gagal membaca file CSV: ${escapeHtml(err.message)}</p>`;
+      },
+    });
+  });
 
   document.getElementById("penjualan-tanggal").valueAsDate = new Date();
 
