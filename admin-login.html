@@ -56,15 +56,19 @@
   const msg = document.getElementById("login-message");
 
   async function redirectIfSuperAdmin() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) return;
-    const { data: profile } = await supabaseClient
-      .from("profiles")
-      .select("role")
-      .eq("id", session.user.id)
-      .single();
-    if (profile && profile.role === "super_admin") {
-      window.location.href = "/super-admin-dashboard";
+    try {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) return;
+      const { data: profile } = await supabaseClient
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .single();
+      if (profile && profile.role === "super_admin") {
+        window.location.href = "/super-admin-dashboard";
+      }
+    } catch (err) {
+      console.error(err);
     }
   }
   redirectIfSuperAdmin();
@@ -89,11 +93,27 @@
     }
 
     const { data: { session } } = await supabaseClient.auth.getSession();
-    const { data: profile } = await supabaseClient
+    if (!session) {
+      msg.textContent = "Terjadi kesalahan, silakan coba lagi.";
+      msg.classList.remove("hidden");
+      btn.disabled = false;
+      btn.textContent = "Masuk";
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
       .select("role")
       .eq("id", session.user.id)
       .single();
+
+    if (profileError) {
+      msg.textContent = "Gagal memuat profil, silakan coba lagi.";
+      msg.classList.remove("hidden");
+      btn.disabled = false;
+      btn.textContent = "Masuk";
+      return;
+    }
 
     if (!profile || profile.role !== "super_admin") {
       await supabaseClient.auth.signOut();
