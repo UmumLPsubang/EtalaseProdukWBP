@@ -14,16 +14,28 @@ alter table profiles alter column upt_id drop not null;
 alter table profiles add constraint profiles_upt_wajib_untuk_role_upt
   check (role = 'super_admin' or upt_id is not null);
 
+-- Helper SECURITY DEFINER: mengecek role pemanggil tanpa memicu RLS pada
+-- profiles lagi. Sebuah policy RLS pada tabel profiles yang query ulang
+-- profiles di dalam USING-nya sendiri akan memicu "infinite recursion
+-- detected in policy for relation profiles" di Postgres -- fungsi ini
+-- berjalan dengan privilese pemilik (bypass RLS), jadi aman dipakai di
+-- dalam policy pada tabel yang sama.
+create or replace function is_super_admin() returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (select 1 from profiles where id = auth.uid() and role = 'super_admin');
+$$;
+
 -- Super admin perlu baca profiles UPT lain untuk memetakan upt_id -> auth user id
 -- saat reset password (lihat Task 6). Baris sendiri sudah bisa dibaca lewat policy
--- "User bisa baca profil sendiri" yang sudah ada -- subquery di bawah ini aman dari
--- rekursi karena bergantung pada policy itu untuk baris "me".
+-- "User bisa baca profil sendiri" yang sudah ada.
 create policy "Super admin bisa baca semua profiles" on profiles
   for select
   to authenticated
-  using (
-    exists (select 1 from profiles me where me.id = auth.uid() and me.role = 'super_admin')
-  );
+  using (is_super_admin());
 
 -- 2. Kolom baru di upt: status (aktif/nonaktif) belum pernah ada sebelumnya, dan locked
 -- untuk fitur Lock/Unlock akun UPT.
@@ -49,9 +61,7 @@ alter table admin_activity_log enable row level security;
 create policy "Super admin bisa baca activity log" on admin_activity_log
   for select
   to authenticated
-  using (
-    exists (select 1 from profiles me where me.id = auth.uid() and me.role = 'super_admin')
-  );
+  using (is_super_admin());
 
 -- Tidak ada policy INSERT di sini dengan sengaja -- semua insert ke tabel ini
 -- terjadi lewat fungsi SECURITY DEFINER di bawah (yang berjalan dengan privilese
@@ -78,7 +88,7 @@ as $$
 declare
   v_before jsonb;
 begin
-  if not exists (select 1 from profiles where id = auth.uid() and role = 'super_admin') then
+  if not is_super_admin() then
     raise exception 'Hanya super admin yang bisa mengubah data UPT';
   end if;
 
@@ -118,7 +128,7 @@ as $$
 declare
   v_snapshot jsonb;
 begin
-  if not exists (select 1 from profiles where id = auth.uid() and role = 'super_admin') then
+  if not is_super_admin() then
     raise exception 'Hanya super admin yang bisa menghapus transaksi';
   end if;
 
