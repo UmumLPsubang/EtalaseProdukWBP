@@ -32,22 +32,17 @@
   <div class="max-w-2xl mx-auto flex items-center justify-between">
     <div>
       <h1 class="font-extrabold text-lg">Input Produk Karya WBP</h1>
-      <p class="text-xs text-blue-200/80">Form internal untuk staf UPT - isi data produk yang akan tampil di etalase</p>
+      <p id="upt-label" class="text-xs text-blue-200/80">Memuat data akun...</p>
     </div>
-    <a href="/index.html" class="text-xs font-semibold text-blue-200 hover:text-white">Kembali ke Katalog</a>
+    <div class="flex items-center gap-3">
+      <a href="/index.html" class="text-xs font-semibold text-blue-200 hover:text-white">Lihat Katalog</a>
+      <button id="logout-btn" class="text-xs font-semibold text-blue-200 hover:text-white">Keluar</button>
+    </div>
   </div>
 </header>
 
 <main class="max-w-2xl mx-auto px-4 sm:px-8 py-8">
   <form id="produk-form" class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 space-y-5">
-
-    <div>
-      <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="upt_id">UPT Asal Produk *</label>
-      <select id="upt_id" name="upt_id" required
-        class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
-        <option value="" disabled selected>Memuat daftar UPT...</option>
-      </select>
-    </div>
 
     <div>
       <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="nama">Nama Produk *</label>
@@ -102,10 +97,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="/assets/js/supabase-client.js"></script>
 <script>
-  const uptSelect = document.getElementById("upt_id");
   const form = document.getElementById("produk-form");
   const submitBtn = document.getElementById("submit-btn");
   const messageBox = document.getElementById("form-message");
+  const uptLabel = document.getElementById("upt-label");
+  const logoutBtn = document.getElementById("logout-btn");
+
+  let currentUptId = null;
 
   function showMessage(text, type) {
     messageBox.textContent = text;
@@ -115,22 +113,34 @@
         : "bg-emerald-50 text-emerald-700 border border-emerald-200");
   }
 
-  async function loadUptOptions() {
-    const { data, error } = await supabaseClient
-      .from("upt")
-      .select("id, nama, kode")
-      .order("nama", { ascending: true });
-
-    if (error || !data) {
-      uptSelect.innerHTML = '<option value="" disabled selected>Gagal memuat daftar UPT</option>';
-      console.error(error);
+  async function loadAccountUpt() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+      window.location.href = "/login.html";
       return;
     }
 
-    uptSelect.innerHTML =
-      '<option value="" disabled selected>Pilih UPT...</option>' +
-      data.map((u) => `<option value="${u.id}">${u.nama} (${u.kode})</option>`).join("");
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("upt_id, upt:upt_id (nama, kode)")
+      .eq("id", session.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      uptLabel.textContent = "Akun ini belum terhubung ke UPT manapun. Hubungi admin.";
+      submitBtn.disabled = true;
+      console.error(profileError);
+      return;
+    }
+
+    currentUptId = profile.upt_id;
+    uptLabel.textContent = `Input produk untuk: ${profile.upt.nama} (${profile.upt.kode})`;
   }
+
+  logoutBtn.addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    window.location.href = "/login.html";
+  });
 
   async function uploadFoto(file, uptId) {
     const ext = file.name.split(".").pop();
@@ -151,7 +161,8 @@
     messageBox.classList.add("hidden");
 
     try {
-      const uptId = uptSelect.value;
+      if (!currentUptId) throw new Error("Akun belum terhubung ke UPT.");
+      const uptId = currentUptId;
       const nama = document.getElementById("nama").value.trim();
       const kategori = document.getElementById("kategori").value;
       const harga = parseFloat(document.getElementById("harga").value);
@@ -190,7 +201,7 @@
     }
   });
 
-  loadUptOptions();
+  loadAccountUpt();
 </script>
 </body>
 </html>
