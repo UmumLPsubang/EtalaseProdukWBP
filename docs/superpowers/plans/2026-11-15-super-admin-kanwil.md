@@ -28,14 +28,17 @@
 
 **New JS modules** (loaded via `<script src>` in `super-admin-dashboard.html`, in this order):
 - `assets/js/super-admin-dashboard.js` — `requireSuperAdminSession()`, tab switching, logout, shared `escapeHtml()`/`formatRupiah()` helpers used by every tab module below.
-- `assets/js/super-admin-overview.js` — Tab Overview (adapted from `monitoring.html`'s aggregation code, with an Aksi column added to the UPT table).
+- `assets/js/monitoring-aggregates.js` — **extracted** from `monitoring.html`'s inline script (the KPI/donut/kategori/wilayah/UPT-table aggregation logic). Shared by both `monitoring.html` and `super-admin-dashboard.html` so the two pages never carry two copies of the same aggregation logic — the same pattern this repo already uses for `assets/js/upt-dashboard.js` across 4 UPT pages. Self-bootstraps on `DOMContentLoaded`; exposes an extension point `window.renderSuperAdminUptActions` that the admin dashboard fills in and the public page leaves undefined.
+- `assets/js/super-admin-overview.js` — Tab Overview: defines `window.renderSuperAdminUptActions(upt)` (the Edit/Reset Password/Lock buttons + status badge appended to each UPT row's Aksi cell).
 - `assets/js/super-admin-kelola-upt.js` — Tab Kelola UPT (edit modal, reset-password modal, lock/unlock) — also supplies the 3 action handlers the Overview tab's table buttons call.
 - `assets/js/super-admin-transaksi.js` — Tab Transaksi (filterable, paginated, delete).
 - `assets/js/super-admin-analytics.js` — Tab Analytics (ranking, wilayah, channel, kategori).
 
 **New Edge Function:** `supabase/functions/reset-upt-password/index.ts` — the only code in this feature allowed to touch the service-role key.
 
-**Modify:** `assets/js/upt-dashboard.js:1-28` (`requireUptSession`) — add a locked-account check so Lock/Unlock in Bagian 5 of the spec actually blocks login.
+**Modify:**
+- `monitoring.html` — replace its inline `<script>` aggregation block with `<script src="/assets/js/monitoring-aggregates.js"></script>` (Task 5).
+- `assets/js/upt-dashboard.js:1-28` (`requireUptSession`) — add a locked-account check so Lock/Unlock in Bagian 5 of the spec actually blocks login (Task 8).
 
 No changes to `vercel.json` are needed — `cleanUrls: true` already maps `admin-login.html` → `/admin-login` and `super-admin-dashboard.html` → `/super-admin-dashboard` automatically, the same way `login.html` maps to `/login` today.
 
@@ -553,62 +556,93 @@ git commit -m "Add super admin dashboard shell with header and tab navigation"
 
 ---
 
-### Task 5: Tab Overview (adapted from monitoring.html)
+### Task 5: Extract monitoring-aggregates.js, then build Tab Overview on top of it
 
 **Files:**
+- Create: `assets/js/monitoring-aggregates.js`
 - Create: `assets/js/super-admin-overview.js`
-- Modify: `super-admin-dashboard.html` (add script tag + panel markup)
+- Modify: `monitoring.html` (replace inline script with `<script src>`, add `status`/`locked` to the UPT select)
+- Modify: `super-admin-dashboard.html` (add script tags + panel markup)
 
 **Interfaces:**
-- Consumes: `escapeHtml()`, `formatRupiah()` from Task 2; `window.onTabActivated` hook from Task 2 (register a no-op dependency here since Overview loads immediately on page load, not on tab click).
-- Produces: `function loadOverviewTab()` (called once at bootstrap). Renders table rows with `data-upt-id` on each `<tr>` and 3 action buttons calling `window.openEditUptModal(uptId)`, `window.openResetPasswordModal(uptId)`, `window.toggleLockUpt(uptId, currentLocked)` — these 3 functions are defined in Task 7 and don't exist yet; clicking them before Task 7 is done will throw `ReferenceError` in the console, which is expected and acceptable at this point in the plan.
+- Produces (in `monitoring-aggregates.js`): `escapeHtml()`, `formatRupiah()`, `initialsFromKode()`, `loadKpiCards()`, `loadUptTable()`, `loadMonitoringAggregates()`, `renderUptRow(upt, index)`, `fillUptRowAggregates()`, `applyUptTableView()`, `openDetailModal()`, `closeDetailModal()`. All self-wire on `DOMContentLoaded` — neither host page needs to call anything explicitly, just load the script tag. `renderUptRow` calls `window.renderSuperAdminUptActions(upt)` if that global function exists, and appends its return value (a string of extra HTML) into the row's Aksi cell; on the public `monitoring.html` that global is never defined, so the row renders exactly as it does today.
+- Produces (in `super-admin-overview.js`): `window.renderSuperAdminUptActions(upt)` — returns an HTML string with a status badge plus Edit/Reset Password/Lock buttons calling `window.openEditUptModal(uptId)`, `window.openResetPasswordModal(uptId)`, `window.toggleLockUpt(uptId, currentLocked)` (defined in Task 7 — calling them before Task 7 exists throws `ReferenceError` in the console, expected at this point in the plan).
+- Consumes: none of Task 2's helpers are needed here — `monitoring-aggregates.js` carries its own `escapeHtml`/`formatRupiah` (identical implementations to Task 2's; this duplication between `super-admin-dashboard.js` and `monitoring-aggregates.js` is small, isolated to two 6-line utility functions, and acceptable — it is the one DRY trade-off this task keeps, versus extracting a third shared-utilities file for two functions).
 
-- [ ] **Step 1: Read the source to adapt**
+- [ ] **Step 1: Read the source to extract**
 
-Open `monitoring.html` and read lines 236–808 (the 4-row analytics markup: KPI cards, Performa Bulanan, Donut+Kategori, Wilayah, Tabel UPT) and lines 940–1422 (the `<script>` block containing `loadKpiCards`, `loadMonitoringAggregates`, `renderChannelDonut`, `renderKategoriKomposisi`, `renderWilayahDistribusi`, `renderUptRow`, `fillUptRowAggregates`, `applyUptTableView`, `openDetailModal`/`closeDetailModal`, `initialsFromKode`). This is the exact logic to copy and adapt below — do not re-derive it from scratch.
+Open `monitoring.html` and read lines 236–808 (the 4-row analytics markup) and lines 940–1422 (the `<script>` block: `loadKpiCards`, `loadMonitoringAggregates`, `renderChannelDonut`, `renderKategoriKomposisi`, `renderWilayahDistribusi`, `renderUptRow`, `fillUptRowAggregates`, `applyUptTableView`, `openDetailModal`/`closeDetailModal`, `initialsFromKode`, and the search-input/sort-button/modal-close event-listener wiring, plus the bootstrap calls at the very end). This whole script block moves into the new file in Step 2 — do not re-derive it from scratch.
 
-- [ ] **Step 2: Insert the panel markup**
+- [ ] **Step 2: Create `monitoring-aggregates.js` by moving the script out of `monitoring.html`**
 
-In `super-admin-dashboard.html`, replace `<div id="panel-overview" data-panel="overview" class="space-y-6"></div>` with the same `<div id="panel-overview" data-panel="overview" class="space-y-6">` wrapping a copy of `monitoring.html`'s KPI cards block (lines 172-235) and ROW 1–4 blocks (lines 236-808), with these changes:
-- Drop the "OFFICIAL VALIDATION BANNER" section (lines 810-839) — that's public-facing content, not relevant to an internal admin tool.
-- In the table header row (around line 358-363), add one more `<th>` so the row reads: `Nama UPT`, `Komoditas Unggulan`, `Volume`, `Total Omzet`, `Status`, `Aksi`.
-- Replace the single `<button>Detail</button>` per row (as rendered by `renderUptRow`, not the static fallback markup) with 4 buttons: `Detail`, `Edit`, `Reset Password`, `Lock`/`Unlock` (label swaps based on current locked state).
-- Keep the `detail-modal` markup (lines 919-934) copied in as well, since `openDetailModal`/`closeDetailModal` depend on it.
-
-- [ ] **Step 3: Write `super-admin-overview.js`**
-
-Copy the full script block from `monitoring.html:940-1422` into this new file verbatim first, then apply these specific edits:
-- Delete any code tied to the public filter-tab mock controls — there is none left after the earlier monitoring honesty-pass revisions, so this is a no-op; confirm by checking there's no reference to `"Semua (33)"` or similar hardcoded filter labels before copying.
-- In `renderUptRow(upt, index)`, add a `data-status="${upt.status || 'aktif'}"` attribute to the `<tr>`, a new `<td>` showing `upt.locked ? 'Terkunci' : (upt.status === 'nonaktif' ? 'Nonaktif' : 'Aktif')`, and replace the single Detail button with:
+Cut the entire contents of `monitoring.html`'s `<script>` block (lines 940–1422) into the new file `assets/js/monitoring-aggregates.js`, then apply these edits inside the new file:
+- Find the bootstrap calls at the very end of the moved code (the bare `loadKpiCards(); loadUptTable(); loadMonitoringAggregates();` and any `document.addEventListener(...)` wiring for the search input / sort button / modal close / Escape key). Wrap all of it in:
 ```javascript
-`<button class="px-2.5 py-1 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-slate-700 text-[11px] font-bold transition border border-border-subtle detail-upt-btn" data-upt-id="${upt.id}" data-nama="${escapeHtml(upt.nama)}" data-kode="${escapeHtml(upt.kode)}">Detail</button>
-<button class="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 text-[11px] font-bold transition border border-blue-200" onclick="window.openEditUptModal('${upt.id}')">Edit</button>
-<button class="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 text-[11px] font-bold transition border border-amber-200" onclick="window.openResetPasswordModal('${upt.id}')">Reset Password</button>
-<button class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 text-[11px] font-bold transition border border-rose-200" onclick="window.toggleLockUpt('${upt.id}', ${upt.locked ? "true" : "false"})">${upt.locked ? "Unlock" : "Lock"}</button>`
-```
-- Rename the bootstrap calls at the end of the script from an immediately-invoked block to a named function so it can be called from `super-admin-dashboard.html`:
-```javascript
-function loadOverviewTab() {
+document.addEventListener("DOMContentLoaded", () => {
   loadKpiCards();
   loadUptTable();
   loadMonitoringAggregates();
-}
+  // ...the existing search-input/sort-button/modal-close/Escape-key listener wiring goes here, unchanged...
+});
 ```
-(remove the bare `loadKpiCards(); loadUptTable(); loadMonitoringAggregates();` calls that existed at the bottom of the monitoring.html script — they're now inside this function instead of running on script load).
+- In `renderUptRow(upt, index)`, find where it builds the Aksi `<td>` (the single `<button>Detail</button>`). Change it to also append a second piece of HTML:
+```javascript
+const adminActionsHtml = (typeof window.renderSuperAdminUptActions === "function")
+  ? window.renderSuperAdminUptActions(upt)
+  : "";
+```
+and concatenate `adminActionsHtml` after the existing Detail button inside that `<td>`. The Detail button's markup, classes, and `data-upt-id`/`data-nama`/`data-kode` attributes are unchanged.
+- In `loadUptTable()`, find the `.select(...)` call that fetches UPT rows and add `status, locked` to the selected columns (needed by `window.renderSuperAdminUptActions` later; harmless for the public page, which simply doesn't render them).
 
-- [ ] **Step 4: Wire the script tag and bootstrap call**
+- [ ] **Step 3: Update `monitoring.html` to load the extracted file**
 
-In `super-admin-dashboard.html`, add `<script src="/assets/js/super-admin-overview.js"></script>` before the existing bootstrap `<script>` block, and inside `bootstrap()` add `loadOverviewTab();` right after `initTabs();`.
+Replace the entire `<script>...</script>` block that used to span lines 940–1422 with:
+```html
+<script src="/assets/js/monitoring-aggregates.js"></script>
+```
+Leave every other part of `monitoring.html` (the HTML markup, the `detail-modal` structure) untouched.
 
-- [ ] **Step 5: Manual verification**
+- [ ] **Step 4: Manual verification of the extraction alone**
 
-Reload `/super-admin-dashboard`. Overview tab shows the same KPI cards / donut / kategori / wilayah / table as public `/monitoring`, but the table now has a Status column and 4 action buttons per row. Clicking Detail opens the same transaction-detail modal as on `/monitoring`. Clicking Edit/Reset Password/Lock throws a console error (expected — Task 7 defines those).
+Before building anything admin-specific, open public `/monitoring` and confirm it behaves exactly as before this task: KPI cards populate, donut/kategori/wilayah render, UPT table populates with Detail buttons that open the modal, search and sort both work. This proves the extraction didn't change public-page behavior before admin-specific code is layered on top.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Insert the Overview panel markup in `super-admin-dashboard.html`**
+
+Replace `<div id="panel-overview" data-panel="overview" class="space-y-6"></div>` with a `<div id="panel-overview" data-panel="overview" class="space-y-6">` wrapping a copy of `monitoring.html`'s KPI cards block (lines 172-235) and ROW 1–4 blocks (lines 236-808) as they exist *after* Task 3's extraction (i.e. plain markup, no inline script), plus the `detail-modal` markup (lines 919-934). Drop the "OFFICIAL VALIDATION BANNER" section (lines 810-839) — that's public-facing content, not relevant to an internal admin tool.
+
+- [ ] **Step 6: Write `super-admin-overview.js`**
+
+```javascript
+window.renderSuperAdminUptActions = function (upt) {
+  const statusLabel = upt.locked ? "Terkunci" : (upt.status === "nonaktif" ? "Nonaktif" : "Aktif");
+  const statusClass = upt.locked
+    ? "bg-rose-100 text-rose-800"
+    : (upt.status === "nonaktif" ? "bg-slate-100 text-slate-600" : "bg-emerald-100 text-emerald-800");
+  return `
+    <div class="flex flex-col items-center gap-1 mt-1.5">
+      <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusClass}">${statusLabel}</span>
+      <div class="flex gap-1">
+        <button class="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 text-[11px] font-bold transition border border-blue-200" onclick="window.openEditUptModal('${upt.id}')">Edit</button>
+        <button class="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 text-[11px] font-bold transition border border-amber-200" onclick="window.openResetPasswordModal('${upt.id}')">Reset</button>
+        <button class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 text-[11px] font-bold transition border border-rose-200" onclick="window.toggleLockUpt('${upt.id}', ${upt.locked ? "true" : "false"})">${upt.locked ? "Unlock" : "Lock"}</button>
+      </div>
+    </div>`;
+};
+```
+
+- [ ] **Step 7: Wire the script tags**
+
+In `super-admin-dashboard.html`, add both `<script src="/assets/js/monitoring-aggregates.js"></script>` and `<script src="/assets/js/super-admin-overview.js"></script>` before the existing bootstrap `<script>` block (order between these two doesn't matter — `window.renderSuperAdminUptActions` is assigned synchronously at parse time, before `monitoring-aggregates.js`'s `DOMContentLoaded` handler can fire).
+
+- [ ] **Step 8: Manual verification**
+
+Reload `/super-admin-dashboard`. Overview tab shows the same KPI cards / donut / kategori / wilayah / table as public `/monitoring`, but each UPT row now has a status badge plus Edit/Reset/Lock buttons under the Detail button. Clicking Detail opens the same transaction-detail modal as on `/monitoring`. Clicking Edit/Reset/Lock throws a console error (expected — Task 7 defines those). Re-check `/monitoring` once more here too — it must still work unchanged.
+
+- [ ] **Step 9: Commit**
 
 ```bash
-git add super-admin-dashboard.html assets/js/super-admin-overview.js
-git commit -m "Add Overview tab to super admin dashboard with UPT action buttons"
+git add monitoring.html super-admin-dashboard.html assets/js/monitoring-aggregates.js assets/js/super-admin-overview.js
+git commit -m "Extract monitoring aggregation logic into shared module; add Overview tab actions"
 ```
 
 ---
