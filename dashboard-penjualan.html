@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Penjualan - Panel UPT Karya WBP</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: "#00102d",
+          "primary-container": "#0f254a",
+          "surface-canvas": "#F4F6FA",
+          "surface-card": "#FFFFFF",
+          "border-subtle": "#E2E8F0",
+        },
+        fontFamily: { sans: ["Plus Jakarta Sans", "sans-serif"] },
+      },
+    },
+  };
+</script>
+<style>body { font-family: "Plus Jakarta Sans", sans-serif; }</style>
+</head>
+<body class="bg-surface-canvas text-primary min-h-screen">
+<div class="min-h-screen flex">
+  <aside class="w-64 bg-primary text-white flex flex-col fixed inset-y-0 left-0 z-40">
+    <div class="p-5 border-b border-white/10">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-primary-container flex items-center justify-center ring-1 ring-white/20 shrink-0">
+          <span class="material-symbols-outlined text-amber-300 text-[20px]">verified</span>
+        </div>
+        <div class="min-w-0">
+          <div class="font-bold text-sm leading-tight">Panel UPT</div>
+          <div class="text-[11px] text-blue-200/80 truncate" id="sidebar-upt-nama">Memuat...</div>
+        </div>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      <a href="/dashboard" data-page="dashboard" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">dashboard</span>Dashboard
+      </a>
+      <a href="/dashboard-produk" data-page="produk" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">inventory_2</span>Produk
+      </a>
+      <a href="/dashboard-penjualan" data-page="penjualan" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">point_of_sale</span>Penjualan
+      </a>
+      <a href="/dashboard-profil" data-page="profil" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">storefront</span>Profil UPT
+      </a>
+    </nav>
+    <div class="p-4 border-t border-white/10 space-y-3">
+      <div class="text-xs">
+        <div class="font-bold" id="sidebar-upt-nama-bawah">-</div>
+        <div class="text-blue-200/70" id="sidebar-upt-kode">-</div>
+      </div>
+      <a href="/" class="flex items-center gap-2 text-xs font-semibold text-blue-200 hover:text-white transition">
+        <span class="material-symbols-outlined text-[16px]">open_in_new</span>Lihat Katalog
+      </a>
+      <button id="sidebar-logout-btn" class="flex items-center gap-2 text-xs font-semibold text-blue-200 hover:text-white transition">
+        <span class="material-symbols-outlined text-[16px]">logout</span>Keluar
+      </button>
+    </div>
+  </aside>
+
+  <main class="flex-1 ml-64 min-h-screen p-6 sm:p-8 max-w-2xl">
+    <h1 class="font-extrabold text-xl text-primary mb-6">Penjualan</h1>
+
+    <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 space-y-5">
+      <h2 class="font-bold text-base text-primary">Input Penjualan - Manual</h2>
+      <form id="penjualan-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="penjualan-produk">Produk *</label>
+          <select id="penjualan-produk" required
+            class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+            <option value="" disabled selected>Memuat produk...</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="penjualan-jumlah">Jumlah *</label>
+            <input id="penjualan-jumlah" type="number" min="1" step="1" required
+              class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="penjualan-total">Total Harga (Rp) *</label>
+            <input id="penjualan-total" type="number" min="0" step="500" required
+              class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="penjualan-channel">Channel *</label>
+            <select id="penjualan-channel" required
+              class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+              <option value="" disabled selected>Pilih channel</option>
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Shopee">Shopee</option>
+              <option value="Tokopedia">Tokopedia</option>
+              <option value="Offline">Offline</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="penjualan-tanggal">Tanggal Transaksi *</label>
+            <input id="penjualan-tanggal" type="date" required
+              class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+          </div>
+        </div>
+        <div id="penjualan-message" class="hidden text-sm font-semibold rounded-lg px-3 py-2"></div>
+        <button type="submit" id="penjualan-submit-btn"
+          class="w-full py-3 rounded-lg bg-primary-container text-white font-bold text-sm hover:bg-primary transition disabled:opacity-50">
+          Simpan Transaksi
+        </button>
+      </form>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 mt-6 space-y-4">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <h2 class="font-bold text-base text-primary">Input Penjualan - Upload CSV (Bulk)</h2>
+        <button id="download-template-btn" type="button" class="text-xs font-bold text-primary-container hover:underline">Download Template CSV</button>
+      </div>
+      <p class="text-xs text-slate-500">
+        Format kolom wajib: <code class="bg-slate-100 px-1 rounded">nama_produk,jumlah,total_harga,channel,tanggal</code>.
+        Channel harus salah satu dari: WhatsApp, Shopee, Tokopedia, Offline, Lainnya. Tanggal format YYYY-MM-DD.
+      </p>
+      <input id="csv-file-input" type="file" accept=".csv,text/csv"
+        class="w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:font-semibold file:text-xs hover:file:bg-slate-200">
+      <button id="csv-upload-btn" type="button"
+        class="px-5 py-2.5 rounded-lg bg-primary-container text-white font-bold text-sm hover:bg-primary transition disabled:opacity-50">
+        Proses Upload
+      </button>
+      <div id="csv-result" class="hidden text-sm space-y-2"></div>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 mt-6">
+      <h2 class="font-bold text-base text-primary mb-4">Riwayat Transaksi</h2>
+      <div class="overflow-x-auto max-h-[400px] overflow-y-auto rounded-lg border border-border-subtle/80">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead class="sticky top-0 bg-surface-container">
+            <tr class="text-slate-700 font-extrabold uppercase tracking-wider text-[10px]">
+              <th class="py-2.5 px-3">Tanggal</th>
+              <th class="py-2.5 px-3">Produk</th>
+              <th class="py-2.5 px-3 text-right">Jumlah</th>
+              <th class="py-2.5 px-3 text-right">Total</th>
+              <th class="py-2.5 px-3">Channel</th>
+            </tr>
+          </thead>
+          <tbody id="riwayat-table-body" class="divide-y divide-border-subtle/70 bg-white">
+            <tr><td colspan="5" class="py-4 px-3 text-center text-slate-400">Memuat riwayat...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="/assets/js/supabase-client.js"></script>
+<script src="/assets/js/upt-dashboard.js"></script>
+<script>
+  let currentUptId = null;
+  let ownProdukList = [];
+  const VALID_CHANNELS = ["WhatsApp", "Shopee", "Tokopedia", "Offline", "Lainnya"];
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+
+  function formatRupiah(n) {
+    return "Rp " + Number(n).toLocaleString("id-ID");
+  }
+
+  async function renderRiwayatTransaksi() {
+    const tbody = document.getElementById("riwayat-table-body");
+    const { data, error } = await supabaseClient
+      .from("transaksi_penjualan")
+      .select("tanggal_transaksi, jumlah, total_harga, channel, produk:produk_id (nama)")
+      .eq("upt_id", currentUptId)
+      .order("tanggal_transaksi", { ascending: false })
+      .limit(100);
+
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="5" class="py-4 px-3 text-center text-red-500">Gagal memuat riwayat.</td></tr>`;
+      console.error(error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="py-4 px-3 text-center text-slate-400">Belum ada transaksi.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map((t) => `
+      <tr>
+        <td class="py-2.5 px-3">${escapeHtml(t.tanggal_transaksi)}</td>
+        <td class="py-2.5 px-3">${escapeHtml(t.produk ? t.produk.nama : "-")}</td>
+        <td class="py-2.5 px-3 text-right">${escapeHtml(String(t.jumlah))}</td>
+        <td class="py-2.5 px-3 text-right font-semibold">${escapeHtml(formatRupiah(t.total_harga))}</td>
+        <td class="py-2.5 px-3">${escapeHtml(t.channel || "-")}</td>
+      </tr>`).join("");
+  }
+
+  async function loadProdukDropdown() {
+    const select = document.getElementById("penjualan-produk");
+    const { data, error } = await supabaseClient
+      .from("produk")
+      .select("id, nama")
+      .eq("upt_id", currentUptId)
+      .eq("status", "aktif")
+      .order("nama", { ascending: true });
+
+    if (error || !data || data.length === 0) {
+      select.innerHTML = '<option value="" disabled selected>Belum ada produk aktif</option>';
+      ownProdukList = [];
+      return;
+    }
+
+    ownProdukList = data;
+    select.innerHTML =
+      '<option value="" disabled selected>Pilih produk...</option>' +
+      data.map((p) => `<option value="${p.id}">${escapeHtml(p.nama)}</option>`).join("");
+  }
+
+  document.getElementById("penjualan-tanggal").valueAsDate = new Date();
+
+  document.getElementById("penjualan-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("penjualan-submit-btn");
+    const msgEl = document.getElementById("penjualan-message");
+    btn.disabled = true;
+    msgEl.classList.add("hidden");
+
+    const produk_id = document.getElementById("penjualan-produk").value;
+    const jumlah = parseInt(document.getElementById("penjualan-jumlah").value, 10);
+    const total_harga = parseFloat(document.getElementById("penjualan-total").value);
+    const channel = document.getElementById("penjualan-channel").value;
+    const tanggal_transaksi = document.getElementById("penjualan-tanggal").value;
+
+    const { error } = await supabaseClient.from("transaksi_penjualan").insert({
+      upt_id: currentUptId,
+      produk_id,
+      jumlah,
+      total_harga,
+      channel,
+      tanggal_transaksi,
+      status_pengiriman: "selesai",
+    });
+
+    msgEl.classList.remove("hidden");
+    if (error) {
+      msgEl.textContent = "Gagal menyimpan transaksi: " + error.message;
+      msgEl.className = "text-sm font-semibold rounded-lg px-3 py-2 bg-red-50 text-red-700 border border-red-200";
+    } else {
+      msgEl.textContent = "Transaksi berhasil disimpan.";
+      msgEl.className = "text-sm font-semibold rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200";
+      e.target.reset();
+      document.getElementById("penjualan-tanggal").valueAsDate = new Date();
+      renderRiwayatTransaksi();
+    }
+    btn.disabled = false;
+  });
+
+  function generateTemplateCsv() {
+    const header = "nama_produk,jumlah,total_harga,channel,tanggal\n";
+    const rows = ownProdukList.map((p) => `"${p.nama.replace(/"/g, '""')}",,,,`).join("\n");
+    return header + rows;
+  }
+
+  function isBlankTemplateRow(row) {
+    return !row.jumlah?.trim() && !row.total_harga?.trim() && !row.channel?.trim() && !row.tanggal?.trim();
+  }
+
+  function validateCsvRow(row, rowIndex, produkByName) {
+    const errors = [];
+    const namaProduk = (row.nama_produk || "").trim();
+    const produk = produkByName.get(namaProduk.toLowerCase());
+    if (!namaProduk) errors.push("nama_produk kosong");
+    else if (!produk) errors.push(`produk "${namaProduk}" tidak ditemukan`);
+
+    const jumlahStr = (row.jumlah || "").trim();
+    const jumlah = Number(jumlahStr);
+    if (!jumlahStr || isNaN(jumlah) || jumlah <= 0) errors.push("jumlah harus angka positif");
+    else if (!Number.isInteger(jumlah)) errors.push("jumlah harus bilangan bulat positif");
+
+    const total = Number(row.total_harga);
+    if (!row.total_harga || isNaN(total) || total < 0) errors.push("total_harga harus angka");
+
+    const channel = (row.channel || "").trim();
+    if (!VALID_CHANNELS.includes(channel)) errors.push(`channel "${channel}" tidak valid`);
+
+    const tanggal = (row.tanggal || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) {
+      errors.push("tanggal harus format YYYY-MM-DD");
+    } else {
+      const [y, m, d] = tanggal.split("-").map(Number);
+      const reconstructed = new Date(y, m - 1, d);
+      const roundTrip = `${reconstructed.getFullYear()}-${String(reconstructed.getMonth() + 1).padStart(2, "0")}-${String(reconstructed.getDate()).padStart(2, "0")}`;
+      if (roundTrip !== tanggal) errors.push("tanggal bukan tanggal kalender yang valid");
+    }
+
+    if (errors.length > 0) return { valid: false, rowIndex, error: errors.join("; ") };
+
+    return {
+      valid: true,
+      data: {
+        upt_id: currentUptId,
+        produk_id: produk.id,
+        jumlah,
+        total_harga: total,
+        channel,
+        tanggal_transaksi: tanggal,
+        status_pengiriman: "selesai",
+      },
+    };
+  }
+
+  document.getElementById("download-template-btn").addEventListener("click", () => {
+    if (ownProdukList.length === 0) {
+      alert("Belum ada produk terdaftar. Tambahkan produk dulu sebelum download template.");
+      return;
+    }
+    const csv = generateTemplateCsv();
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "template-penjualan.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById("csv-upload-btn").addEventListener("click", () => {
+    const fileInput = document.getElementById("csv-file-input");
+    const resultBox = document.getElementById("csv-result");
+    const uploadBtn = document.getElementById("csv-upload-btn");
+    const file = fileInput.files[0];
+    if (!file) {
+      alert("Pilih file CSV terlebih dahulu.");
+      return;
+    }
+
+    uploadBtn.disabled = true;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const produkByName = new Map(ownProdukList.map((p) => [p.nama.toLowerCase(), p]));
+        const validRows = [];
+        const failedRows = [];
+
+        results.data.forEach((row, i) => {
+          if (isBlankTemplateRow(row)) return;
+          const outcome = validateCsvRow(row, i + 2, produkByName);
+          if (outcome.valid) validRows.push(outcome.data);
+          else failedRows.push(outcome);
+        });
+
+        let insertedCount = 0;
+        if (validRows.length > 0) {
+          const { error, data } = await supabaseClient.from("transaksi_penjualan").insert(validRows).select();
+          if (error) {
+            failedRows.push({ rowIndex: "-", error: "Gagal insert batch: " + error.message });
+          } else {
+            insertedCount = data.length;
+          }
+        }
+
+        resultBox.classList.remove("hidden");
+        let html = `<p class="font-bold ${insertedCount > 0 ? "text-emerald-700" : "text-slate-600"}">${insertedCount} baris berhasil disimpan, ${failedRows.length} baris gagal.</p>`;
+        if (failedRows.length > 0) {
+          html += `<table class="w-full text-xs border-collapse mt-2"><thead><tr class="text-left text-slate-500"><th class="py-1 pr-3">Baris</th><th class="py-1">Alasan</th></tr></thead><tbody>`;
+          html += failedRows.map((f) => `<tr><td class="py-1 pr-3 font-semibold">${escapeHtml(String(f.rowIndex))}</td><td class="py-1 text-red-600">${escapeHtml(f.error)}</td></tr>`).join("");
+          html += `</tbody></table>`;
+        }
+        resultBox.innerHTML = html;
+
+        if (insertedCount > 0) renderRiwayatTransaksi();
+        fileInput.value = "";
+        uploadBtn.disabled = false;
+      },
+      error: (err) => {
+        resultBox.classList.remove("hidden");
+        resultBox.innerHTML = `<p class="text-red-600 font-semibold">Gagal membaca file CSV: ${escapeHtml(err.message)}</p>`;
+        uploadBtn.disabled = false;
+      },
+    });
+  });
+
+  (async () => {
+    const uptInfo = await requireUptSession();
+    if (!uptInfo) return;
+    currentUptId = uptInfo.uptId;
+    renderSidebar("penjualan", uptInfo);
+    renderRiwayatTransaksi();
+    loadProdukDropdown();
+  })();
+</script>
+</body>
+</html>
