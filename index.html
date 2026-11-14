@@ -161,8 +161,8 @@
     const actionButtons = renderActionButtons(p);
 
     const img = p.image_url
-      ? `<img alt="${escapeHtml(p.nama)}" class="w-full h-44 object-cover" src="${escapeHtml(p.image_url)}">`
-      : `<div class="w-full h-44 bg-surface-canvas flex items-center justify-center text-outline text-xs">Tidak ada foto</div>`;
+      ? `<div class="w-full h-56 bg-white flex items-center justify-center"><img alt="${escapeHtml(p.nama)}" class="w-full h-full object-contain" src="${escapeHtml(p.image_url)}"></div>`
+      : `<div class="w-full h-56 bg-surface-canvas flex items-center justify-center text-outline text-xs">Tidak ada foto</div>`;
 
     return `
       <article class="product-card flex flex-col bg-surface-card rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
