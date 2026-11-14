@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Produk - Panel UPT Karya WBP</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: "#00102d",
+          "primary-container": "#0f254a",
+          "surface-canvas": "#F4F6FA",
+          "surface-card": "#FFFFFF",
+          "border-subtle": "#E2E8F0",
+        },
+        fontFamily: { sans: ["Plus Jakarta Sans", "sans-serif"] },
+      },
+    },
+  };
+</script>
+<style>body { font-family: "Plus Jakarta Sans", sans-serif; }</style>
+</head>
+<body class="bg-surface-canvas text-primary min-h-screen">
+<div class="min-h-screen flex">
+  <aside class="w-64 bg-primary text-white flex flex-col fixed inset-y-0 left-0 z-40">
+    <div class="p-5 border-b border-white/10">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-primary-container flex items-center justify-center ring-1 ring-white/20 shrink-0">
+          <span class="material-symbols-outlined text-amber-300 text-[20px]">verified</span>
+        </div>
+        <div class="min-w-0">
+          <div class="font-bold text-sm leading-tight">Panel UPT</div>
+          <div class="text-[11px] text-blue-200/80 truncate" id="sidebar-upt-nama">Memuat...</div>
+        </div>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      <a href="/dashboard" data-page="dashboard" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">dashboard</span>Dashboard
+      </a>
+      <a href="/dashboard-produk" data-page="produk" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">inventory_2</span>Produk
+      </a>
+      <a href="/dashboard-penjualan" data-page="penjualan" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">point_of_sale</span>Penjualan
+      </a>
+      <a href="/dashboard-profil" data-page="profil" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-blue-100 hover:bg-white/10 transition">
+        <span class="material-symbols-outlined text-[20px]">storefront</span>Profil UPT
+      </a>
+    </nav>
+    <div class="p-4 border-t border-white/10 space-y-3">
+      <div class="text-xs">
+        <div class="font-bold" id="sidebar-upt-nama-bawah">-</div>
+        <div class="text-blue-200/70" id="sidebar-upt-kode">-</div>
+      </div>
+      <a href="/" class="flex items-center gap-2 text-xs font-semibold text-blue-200 hover:text-white transition">
+        <span class="material-symbols-outlined text-[16px]">open_in_new</span>Lihat Katalog
+      </a>
+      <button id="sidebar-logout-btn" class="flex items-center gap-2 text-xs font-semibold text-blue-200 hover:text-white transition">
+        <span class="material-symbols-outlined text-[16px]">logout</span>Keluar
+      </button>
+    </div>
+  </aside>
+
+  <main class="flex-1 ml-64 min-h-screen p-6 sm:p-8 max-w-2xl">
+    <h1 class="font-extrabold text-xl text-primary mb-6">Produk</h1>
+
+    <form id="produk-form" class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 space-y-5">
+      <h2 class="font-bold text-base text-primary">Tambah Produk</h2>
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="nama">Nama Produk *</label>
+        <input id="nama" name="nama" type="text" required maxlength="150" placeholder="Misal: Kopi Robusta Tangkuban Parahu"
+          class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="kategori">Kategori *</label>
+          <select id="kategori" name="kategori" required
+            class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+            <option value="" disabled selected>Pilih kategori</option>
+            <option value="Kriya">Kriya</option>
+            <option value="Tekstil">Tekstil</option>
+            <option value="Kuliner">Kuliner</option>
+            <option value="Mebel">Mebel</option>
+            <option value="Pertanian">Pertanian</option>
+            <option value="Jasa">Jasa</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="harga">Harga (Rp) *</label>
+          <input id="harga" name="harga" type="number" min="0" step="500" required placeholder="50000"
+            class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="deskripsi">Deskripsi</label>
+        <textarea id="deskripsi" name="deskripsi" rows="3" maxlength="500" placeholder="Deskripsi singkat produk (opsional)"
+          class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="foto">Foto Produk</label>
+        <input id="foto" name="foto" type="file" accept="image/png,image/jpeg,image/webp"
+          class="w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:font-semibold file:text-xs hover:file:bg-slate-200">
+        <p class="text-[11px] text-slate-500 mt-1">Maks 2MB. Format: JPG, PNG, atau WebP.</p>
+      </div>
+
+      <div id="form-message" class="hidden text-sm font-semibold rounded-lg px-3 py-2"></div>
+
+      <button type="submit" id="submit-btn"
+        class="w-full py-3 rounded-lg bg-primary-container text-white font-bold text-sm hover:bg-primary transition disabled:opacity-50 disabled:cursor-not-allowed">
+        Simpan Produk
+      </button>
+    </form>
+
+    <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 mt-6">
+      <h2 class="font-bold text-base text-primary mb-4">Daftar Produk</h2>
+      <div id="produk-list" class="space-y-3">
+        <p class="text-sm text-slate-400 text-center py-6">Memuat daftar produk...</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="/assets/js/supabase-client.js"></script>
+<script src="/assets/js/upt-dashboard.js"></script>
+<script>
+  let currentUptId = null;
+  const form = document.getElementById("produk-form");
+  const submitBtn = document.getElementById("submit-btn");
+  const messageBox = document.getElementById("form-message");
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+
+  function formatRupiah(n) {
+    return "Rp " + Number(n).toLocaleString("id-ID");
+  }
+
+  function showMessage(text, type) {
+    messageBox.textContent = text;
+    messageBox.className = "text-sm font-semibold rounded-lg px-3 py-2 " +
+      (type === "error"
+        ? "bg-red-50 text-red-700 border border-red-200"
+        : "bg-emerald-50 text-emerald-700 border border-emerald-200");
+    messageBox.classList.remove("hidden");
+  }
+
+  async function uploadFoto(file, uptId) {
+    const ext = file.name.split(".").pop();
+    const path = `${uptId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: uploadError } = await supabaseClient.storage
+      .from("produk-images")
+      .upload(path, file);
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabaseClient.storage.from("produk-images").getPublicUrl(path);
+    return urlData.publicUrl;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Menyimpan...";
+    messageBox.classList.add("hidden");
+
+    try {
+      const nama = document.getElementById("nama").value.trim();
+      const kategori = document.getElementById("kategori").value;
+      const harga = parseFloat(document.getElementById("harga").value);
+      const deskripsi = document.getElementById("deskripsi").value.trim() || null;
+      const fotoFile = document.getElementById("foto").files[0];
+
+      let image_url = null;
+      if (fotoFile) {
+        if (fotoFile.size > 2 * 1024 * 1024) {
+          throw new Error("Ukuran foto melebihi 2MB.");
+        }
+        image_url = await uploadFoto(fotoFile, currentUptId);
+      }
+
+      const { error: insertError } = await supabaseClient.from("produk").insert({
+        upt_id: currentUptId,
+        nama,
+        kategori,
+        harga,
+        deskripsi,
+        image_url,
+        status: "aktif",
+      });
+      if (insertError) throw insertError;
+
+      showMessage("Produk berhasil disimpan.", "success");
+      form.reset();
+      loadProdukList(currentUptId);
+    } catch (err) {
+      console.error(err);
+      showMessage("Gagal menyimpan produk: " + (err.message || "terjadi kesalahan"), "error");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Simpan Produk";
+    }
+  });
+
+  function renderProdukListItem(p) {
+    const statusBadge = p.status === "aktif"
+      ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>'
+      : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200">Nonaktif</span>';
+    const toggleLabel = p.status === "aktif" ? "Nonaktifkan" : "Aktifkan";
+    const img = p.image_url
+      ? `<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.nama)}" class="w-12 h-12 rounded-lg object-cover border border-border-subtle">`
+      : `<div class="w-12 h-12 rounded-lg bg-surface-canvas border border-border-subtle flex items-center justify-center text-[9px] text-slate-400 text-center">No Foto</div>`;
+
+    return `
+      <div class="flex items-center gap-3 p-3 border border-border-subtle rounded-xl">
+        ${img}
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-bold text-sm text-primary truncate">${escapeHtml(p.nama)}</span>
+            ${statusBadge}
+          </div>
+          <div class="text-xs text-slate-500">${escapeHtml(p.kategori || "-")} &middot; ${formatRupiah(p.harga)}</div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button class="toggle-status-btn px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary text-xs font-bold transition border border-border-subtle" data-id="${p.id}" data-current-status="${p.status}">${toggleLabel}</button>
+          <button class="delete-produk-btn px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition border border-red-200" data-id="${p.id}" data-nama="${escapeHtml(p.nama)}">Hapus</button>
+        </div>
+      </div>`;
+  }
+
+  async function loadProdukList(uptId) {
+    const container = document.getElementById("produk-list");
+    const { data, error } = await supabaseClient
+      .from("produk")
+      .select("id, nama, kategori, harga, image_url, status")
+      .eq("upt_id", uptId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      container.innerHTML = '<p class="text-sm text-red-500 text-center py-6">Gagal memuat daftar produk.</p>';
+      console.error(error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p class="text-sm text-slate-400 text-center py-6">Belum ada produk terdaftar.</p>';
+      return;
+    }
+
+    container.innerHTML = data.map(renderProdukListItem).join("");
+
+    container.querySelectorAll(".toggle-status-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const newStatus = btn.dataset.currentStatus === "aktif" ? "nonaktif" : "aktif";
+        btn.disabled = true;
+        const { error: updateError } = await supabaseClient.from("produk").update({ status: newStatus }).eq("id", id);
+        if (updateError) {
+          alert("Gagal mengubah status: " + updateError.message);
+          btn.disabled = false;
+          return;
+        }
+        loadProdukList(uptId);
+      });
+    });
+
+    container.querySelectorAll(".delete-produk-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const nama = btn.dataset.nama;
+        const confirmed = confirm(`Yakin hapus "${nama}"? Transaksi lama yang pernah pakai produk ini akan kehilangan nama produknya. Tindakan ini tidak bisa dibatalkan.`);
+        if (!confirmed) return;
+        btn.disabled = true;
+        const { error: deleteError } = await supabaseClient.from("produk").delete().eq("id", id);
+        if (deleteError) {
+          alert("Gagal menghapus produk: " + deleteError.message);
+          btn.disabled = false;
+          return;
+        }
+        loadProdukList(uptId);
+      });
+    });
+  }
+
+  (async () => {
+    const uptInfo = await requireUptSession();
+    if (!uptInfo) return;
+    currentUptId = uptInfo.uptId;
+    renderSidebar("produk", uptInfo);
+    loadProdukList(currentUptId);
+  })();
+</script>
+</body>
+</html>
