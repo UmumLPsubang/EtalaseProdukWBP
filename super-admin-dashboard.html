@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Dashboard Super Admin - Karya WBP Jabar Juara</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: "#00102d", "primary-container": "#0f254a",
+          "surface-canvas": "#F4F6FA", "surface-container": "#F1F5F9", "surface-container-high": "#E2E8F0",
+          "on-surface": "#0F172A", "on-surface-variant": "#475569",
+          "border-subtle": "#E2E8F0",
+        },
+        fontFamily: { sans: ["Plus Jakarta Sans", "sans-serif"] },
+      },
+    },
+  };
+</script>
+<style>body { font-family: "Plus Jakarta Sans", sans-serif; }</style>
+</head>
+<body class="bg-surface-canvas text-on-surface min-h-screen">
+<header class="fixed top-0 left-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-border-subtle shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3.5">
+      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-md">
+        <span class="material-symbols-outlined text-[26px]">admin_panel_settings</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="font-bold text-lg text-primary tracking-tight leading-tight">Super Admin Kanwil</span>
+        <span class="text-xs font-medium text-on-surface-variant leading-normal" id="header-admin-nama">Memuat...</span>
+      </div>
+    </div>
+    <button id="header-logout-btn" class="px-4 py-2 rounded-lg text-sm font-semibold bg-surface-container hover:bg-surface-container-high text-primary transition">Logout</button>
+  </div>
+</header>
+
+<main class="w-full pt-28 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+  <nav class="flex items-center gap-1.5 p-1 bg-surface-container rounded-xl border border-border-subtle/80 mb-6 overflow-x-auto w-fit max-w-full">
+    <button data-tab="overview" class="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all bg-primary-container text-white">Overview</button>
+    <button data-tab="kelola-upt" class="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all text-on-surface-variant hover:text-primary hover:bg-white">Kelola UPT</button>
+    <button data-tab="transaksi" class="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all text-on-surface-variant hover:text-primary hover:bg-white">Transaksi</button>
+    <button data-tab="analytics" class="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all text-on-surface-variant hover:text-primary hover:bg-white">Analytics</button>
+  </nav>
+
+  <div id="panel-overview" data-panel="overview" class="space-y-6"></div>
+  <div id="panel-kelola-upt" data-panel="kelola-upt" class="space-y-6 hidden"></div>
+  <div id="panel-transaksi" data-panel="transaksi" class="space-y-6 hidden"></div>
+  <div id="panel-analytics" data-panel="analytics" class="space-y-6 hidden"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="/assets/js/supabase-client.js"></script>
+<script src="/assets/js/super-admin-dashboard.js"></script>
+<script>
+  (async function bootstrap() {
+    const admin = await requireSuperAdminSession();
+    if (!admin) return;
+    document.getElementById("header-admin-nama").textContent = admin.nama || admin.email;
+    initTabs();
+  })();
+</script>
+</body>
+</html>
