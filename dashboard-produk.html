@@ -70,9 +70,10 @@
 </div>
 </header>
 
-<main class="min-h-screen pt-24 p-6 sm:p-8 max-w-2xl">
+<main class="min-h-screen pt-24 p-6 sm:p-8 max-w-6xl">
     <h1 class="font-extrabold text-xl text-primary mb-6">Produk</h1>
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
     <form id="produk-form" class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 space-y-5">
       <h2 class="font-bold text-base text-primary" id="produk-form-title">Tambah Produk</h2>
 
@@ -144,12 +145,13 @@
       </div>
     </form>
 
-    <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 mt-6">
+    <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6">
       <h2 class="font-bold text-base text-primary mb-4">Daftar Produk</h2>
       <div id="produk-list" class="space-y-3">
         <p class="text-sm text-slate-400 text-center py-6">Memuat daftar produk...</p>
       </div>
     </section>
+    </div>
   </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
