@@ -155,3 +155,67 @@ end;
 $$;
 
 grant execute on function admin_delete_transaksi(uuid) to authenticated;
+
+-- ============================================
+-- Tambahan: Tab Produk Super Admin — toggle status + ganti foto lintas-UPT.
+-- Ditambahkan ke file migrasi yang sama; jalankan ulang seluruh file ini
+-- di Supabase SQL Editor (idempotent — aman dijalankan ulang).
+-- ============================================
+
+-- RPC: super admin mengubah status (aktif/nonaktif) dan/atau foto produk
+-- milik UPT mana pun. Field lain (nama/harga/kategori/deskripsi) sengaja
+-- TIDAK bisa diubah lewat RPC ini -- itu tetap wewenang UPT pemilik saja,
+-- sesuai scope yang disetujui (lihat spec 2026-11-15-produk-tab-super-admin-design.md).
+create or replace function admin_update_produk(
+  p_produk_id uuid,
+  p_status text,
+  p_image_url text
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_before jsonb;
+begin
+  if not is_super_admin() then
+    raise exception 'Hanya super admin yang bisa mengubah produk';
+  end if;
+
+  select to_jsonb(p) into v_before from produk p where p.id = p_produk_id;
+
+  if v_before is null then
+    raise exception 'Produk tidak ditemukan';
+  end if;
+
+  update produk
+  set status = p_status,
+      image_url = p_image_url
+  where id = p_produk_id;
+
+  insert into admin_activity_log (admin_id, action, target_type, target_id, changes)
+  values (
+    auth.uid(), 'edit_produk', 'produk', p_produk_id,
+    jsonb_build_object(
+      'before', v_before,
+      'after', jsonb_build_object('status', p_status, 'image_url', p_image_url)
+    )
+  );
+end;
+$$;
+
+grant execute on function admin_update_produk(uuid, text, text) to authenticated;
+
+-- Storage: super admin bisa upload foto ke folder UPT mana pun (bukan cuma
+-- folder sendiri -- super admin tidak punya upt_id). Policy UPT yang sudah
+-- ada (folder harus sama dengan upt_id pengunggah) tidak diubah atau
+-- dipersempit oleh policy baru ini.
+drop policy if exists "Super admin bisa upload foto ke folder UPT manapun" on storage.objects;
+
+create policy "Super admin bisa upload foto ke folder UPT manapun" on storage.objects
+  for insert
+  to authenticated
+  with check (
+    bucket_id = 'produk-images'
+    and is_super_admin()
+  );
