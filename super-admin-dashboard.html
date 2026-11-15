@@ -797,7 +797,35 @@
       </div>
     </div>
   </div>
-  <div id="panel-analytics" data-panel="analytics" class="space-y-6 hidden"></div>
+  <div id="panel-analytics" data-panel="analytics" class="space-y-6 hidden">
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle">
+      <h2 class="font-bold text-lg text-primary mb-4">Top UPT Ranking</h2>
+      <table class="w-full text-left text-xs border-collapse">
+        <thead><tr class="text-slate-700 font-extrabold uppercase text-[11px]"><th class="py-2">Rank</th><th class="py-2">UPT</th><th class="py-2 text-right">Omzet</th><th class="py-2 text-right">Volume</th></tr></thead>
+        <tbody id="analytics-ranking-body"></tbody>
+      </table>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle">
+        <h3 class="font-bold text-base text-primary mb-3">Performa per Wilayah</h3>
+        <table class="w-full text-left text-xs border-collapse">
+          <thead><tr class="text-slate-700 font-extrabold uppercase text-[11px]"><th class="py-2">Wilayah</th><th class="py-2 text-right">Omzet</th><th class="py-2 text-right">UPT</th></tr></thead>
+          <tbody id="analytics-wilayah-body"></tbody>
+        </table>
+      </div>
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle">
+        <h3 class="font-bold text-base text-primary mb-3">Performa Kategori Produk</h3>
+        <table class="w-full text-left text-xs border-collapse">
+          <thead><tr class="text-slate-700 font-extrabold uppercase text-[11px]"><th class="py-2">Kategori</th><th class="py-2 text-right">Volume</th><th class="py-2 text-right">Omzet</th></tr></thead>
+          <tbody id="analytics-kategori-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle text-center">
+      <p class="text-sm font-semibold text-slate-500">Tren bulanan belum tersedia</p>
+      <p class="text-xs text-slate-400">Growth % dan grafik tren memerlukan agregasi data bulanan yang belum dibangun.</p>
+    </div>
+  </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -807,6 +835,7 @@
 <script src="/assets/js/super-admin-overview.js"></script>
 <script src="/assets/js/super-admin-kelola-upt.js"></script>
 <script src="/assets/js/super-admin-transaksi.js"></script>
+<script src="/assets/js/super-admin-analytics.js"></script>
 <script>
   (async function bootstrap() {
     try {
@@ -816,6 +845,7 @@
       window.onTabActivated = function (tabName) {
         if (tabName === "kelola-upt") loadKelolaUptTable();
         if (tabName === "transaksi") loadTransaksiTab();
+        if (tabName === "analytics") loadAnalyticsTab();
       };
       initTabs();
     } catch (err) {
