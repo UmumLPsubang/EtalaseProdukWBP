@@ -154,7 +154,7 @@
       <p class="text-xs text-slate-500">
         Siapkan 1 file ZIP berisi file <code class="bg-slate-100 px-1 rounded">produk.csv</code> (nama file wajib persis itu) dan gambar-gambar produk, semua di root ZIP (tidak di dalam folder).
         Kolom CSV wajib: <code class="bg-slate-100 px-1 rounded">nama_produk,kategori,harga,deskripsi,link_shopee,link_tokopedia,nama_file_gambar</code>.
-        Kategori harus salah satu dari: Kriya, Tekstil, Kuliner, Mebel, Pertanian, Jasa, Lainnya. Nama file gambar di kolom <code class="bg-slate-100 px-1 rounded">nama_file_gambar</code> harus persis sama dengan nama file gambar di dalam ZIP. Maks 2MB per gambar, format JPG/PNG/WebP.
+        Kategori harus salah satu dari: Kriya, Tekstil, Kuliner, Mebel, Pertanian, Jasa, Lainnya. Nama file gambar di kolom <code class="bg-slate-100 px-1 rounded">nama_file_gambar</code> harus persis sama dengan nama file gambar di dalam ZIP. Maks 2MB per gambar, format JPG/PNG/WebP. Harga harus angka bulat tanpa titik atau koma (misal 10000, bukan 10.000).
       </p>
       <input id="zip-file-input" type="file" accept=".zip,application/zip"
         class="w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:font-semibold file:text-xs hover:file:bg-slate-200">
@@ -461,8 +461,8 @@
     if (!VALID_KATEGORI.includes(kategori)) errors.push(`kategori "${kategori}" tidak valid`);
 
     const hargaRaw = (row.harga || "").trim();
-    const harga = parseFloat(hargaRaw);
-    if (hargaRaw === "" || isNaN(harga) || harga < 0) errors.push("harga harus angka >= 0");
+    if (!/^\d+$/.test(hargaRaw)) errors.push("harga harus angka bulat tanpa titik/koma, mis. 10000");
+    const harga = Number(hargaRaw);
 
     const deskripsi = (row.deskripsi || "").trim() || null;
 
@@ -553,7 +553,7 @@
       }
 
       const csvText = await csvEntry.async("string");
-      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: false });
 
       if (!parsed.data || parsed.data.length === 0) {
         throw new Error("Tidak ada baris produk untuk diproses.");
@@ -563,8 +563,11 @@
       const failedRows = [];
 
       for (let i = 0; i < parsed.data.length; i++) {
+        const row = parsed.data[i];
+        const isBlankRow = Object.values(row).every((v) => !v || !String(v).trim());
+        if (isBlankRow) continue;
         try {
-          const outcome = await processProdukRow(parsed.data[i], i + 2, zip);
+          const outcome = await processProdukRow(row, i + 2, zip);
           if (outcome.valid) validRows.push(outcome);
           else failedRows.push(outcome);
         } catch (err) {
