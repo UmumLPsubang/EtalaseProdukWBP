@@ -48,6 +48,7 @@
     <button data-tab="kelola-upt" class="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all text-on-surface-variant hover:text-primary hover:bg-white">Kelola UPT</button>
     <button data-tab="transaksi" class="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all text-on-surface-variant hover:text-primary hover:bg-white">Transaksi</button>
     <button data-tab="analytics" class="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all text-on-surface-variant hover:text-primary hover:bg-white">Analytics</button>
+    <button data-tab="produk" class="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all text-on-surface-variant hover:text-primary hover:bg-white">Produk</button>
   </nav>
 
   <div id="panel-overview" data-panel="overview" class="space-y-6">
@@ -826,6 +827,52 @@
       <p class="text-xs text-slate-400">Growth % dan grafik tren memerlukan agregasi data bulanan yang belum dibangun.</p>
     </div>
   </div>
+
+<div id="panel-produk" data-panel="produk" class="space-y-6 hidden">
+  <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+      <h2 class="font-bold text-lg text-primary">Produk Seluruh UPT</h2>
+      <div class="flex flex-wrap items-center gap-2">
+        <input id="produk-search" type="text" placeholder="Cari produk/UPT..." class="bg-surface-container px-3 py-1.5 rounded-xl border border-border-subtle text-xs font-semibold outline-none w-48">
+        <select id="produk-filter-upt" class="bg-surface-container px-3 py-1.5 rounded-xl border border-border-subtle text-xs font-semibold outline-none"><option value="">Semua UPT</option></select>
+        <select id="produk-filter-kategori" class="bg-surface-container px-3 py-1.5 rounded-xl border border-border-subtle text-xs font-semibold outline-none"><option value="">Semua Kategori</option></select>
+        <select id="produk-filter-status" class="bg-surface-container px-3 py-1.5 rounded-xl border border-border-subtle text-xs font-semibold outline-none">
+          <option value="">Semua Status</option>
+          <option value="aktif">Aktif</option>
+          <option value="nonaktif">Nonaktif</option>
+        </select>
+      </div>
+    </div>
+    <div class="overflow-x-auto rounded-xl border border-border-subtle/80">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead class="bg-surface-container"><tr class="text-slate-700 font-extrabold uppercase tracking-wider text-[11px]">
+          <th class="py-3 px-3.5">Foto</th><th class="py-3 px-3">Nama Produk</th><th class="py-3 px-3">UPT Pemilik</th>
+          <th class="py-3 px-3">Kategori</th><th class="py-3 px-3 text-right">Harga</th><th class="py-3 px-3">Status</th><th class="py-3 px-3.5 text-center">Aksi</th>
+        </tr></thead>
+        <tbody id="produk-table-body" class="divide-y divide-border-subtle/70 bg-white"></tbody>
+      </table>
+    </div>
+    <div class="flex justify-center mt-4">
+      <button id="produk-load-more" class="px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-bold text-sm">Muat lebih banyak</button>
+    </div>
+  </div>
+</div>
+
+<div id="ganti-foto-modal" class="hidden fixed inset-0 z-[100] items-center justify-center p-4">
+  <div class="absolute inset-0 bg-black/50" onclick="document.getElementById('ganti-foto-modal').classList.add('hidden')"></div>
+  <div class="relative bg-white rounded-2xl w-full max-w-sm p-6 space-y-4">
+    <h3 class="font-bold text-base text-primary">Ganti Foto Produk</h3>
+    <input type="hidden" id="ganti-foto-produk-id">
+    <input type="hidden" id="ganti-foto-upt-id">
+    <input id="ganti-foto-input" type="file" accept="image/*" class="w-full text-xs">
+    <div id="ganti-foto-preview" class="hidden"><img class="w-full h-40 object-contain rounded-lg border border-border-subtle" alt="Preview"></div>
+    <div id="ganti-foto-message" class="hidden text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2"></div>
+    <div class="flex gap-2 pt-2">
+      <button type="button" onclick="document.getElementById('ganti-foto-modal').classList.add('hidden')" class="flex-1 py-2.5 rounded-lg bg-surface-container text-slate-700 font-bold text-sm">Batal</button>
+      <button type="button" id="ganti-foto-submit" class="flex-1 py-2.5 rounded-lg bg-primary-container text-white font-bold text-sm">Upload</button>
+    </div>
+  </div>
+</div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -836,6 +883,7 @@
 <script src="/assets/js/super-admin-kelola-upt.js"></script>
 <script src="/assets/js/super-admin-transaksi.js"></script>
 <script src="/assets/js/super-admin-analytics.js"></script>
+<script src="/assets/js/super-admin-produk.js"></script>
 <script>
   (async function bootstrap() {
     try {
@@ -846,6 +894,7 @@
         if (tabName === "kelola-upt") loadKelolaUptTable();
         if (tabName === "transaksi") loadTransaksiTab();
         if (tabName === "analytics") loadAnalyticsTab();
+        if (tabName === "produk") loadProdukTab();
       };
       initTabs();
       loadKelolaUptTable();
