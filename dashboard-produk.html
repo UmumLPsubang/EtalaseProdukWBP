@@ -74,6 +74,7 @@
     <h1 class="font-extrabold text-xl text-primary mb-6">Produk</h1>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <div class="space-y-6">
     <form id="produk-form" class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 space-y-5">
       <h2 class="font-bold text-base text-primary" id="produk-form-title">Tambah Produk</h2>
 
@@ -145,6 +146,26 @@
       </div>
     </form>
 
+    <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 space-y-4">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <h2 class="font-bold text-base text-primary">Upload ZIP (Bulk)</h2>
+        <button id="download-zip-template-btn" type="button" class="text-xs font-bold text-primary-container hover:underline">Download Template CSV</button>
+      </div>
+      <p class="text-xs text-slate-500">
+        Siapkan 1 file ZIP berisi file <code class="bg-slate-100 px-1 rounded">produk.csv</code> (nama file wajib persis itu) dan gambar-gambar produk, semua di root ZIP (tidak di dalam folder).
+        Kolom CSV wajib: <code class="bg-slate-100 px-1 rounded">nama_produk,kategori,harga,deskripsi,link_shopee,link_tokopedia,nama_file_gambar</code>.
+        Kategori harus salah satu dari: Kriya, Tekstil, Kuliner, Mebel, Pertanian, Jasa, Lainnya. Nama file gambar di kolom <code class="bg-slate-100 px-1 rounded">nama_file_gambar</code> harus persis sama dengan nama file gambar di dalam ZIP. Maks 2MB per gambar, format JPG/PNG/WebP.
+      </p>
+      <input id="zip-file-input" type="file" accept=".zip,application/zip"
+        class="w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:font-semibold file:text-xs hover:file:bg-slate-200">
+      <button id="zip-upload-btn" type="button"
+        class="px-5 py-2.5 rounded-lg bg-primary-container text-white font-bold text-sm hover:bg-primary transition disabled:opacity-50">
+        Proses Upload
+      </button>
+      <div id="zip-result" class="hidden text-sm space-y-2"></div>
+    </section>
+    </div>
+
     <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6">
       <h2 class="font-bold text-base text-primary mb-4">Daftar Produk</h2>
       <div id="produk-list" class="space-y-3">
@@ -154,6 +175,8 @@
     </div>
   </main>
 
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="/assets/js/supabase-client.js"></script>
 <script src="/assets/js/upt-dashboard.js"></script>
@@ -418,6 +441,167 @@
       });
     });
   }
+
+  const VALID_KATEGORI = ["Kriya", "Tekstil", "Kuliner", "Mebel", "Pertanian", "Jasa", "Lainnya"];
+
+  async function processProdukRow(row, rowIndex, zip) {
+    const errors = [];
+
+    const nama = (row.nama_produk || "").trim();
+    if (!nama) errors.push("nama_produk kosong");
+
+    const kategori = (row.kategori || "").trim();
+    if (!VALID_KATEGORI.includes(kategori)) errors.push(`kategori "${kategori}" tidak valid`);
+
+    const hargaRaw = (row.harga || "").trim();
+    const harga = parseFloat(hargaRaw);
+    if (hargaRaw === "" || isNaN(harga) || harga < 0) errors.push("harga harus angka >= 0");
+
+    const deskripsi = (row.deskripsi || "").trim() || null;
+
+    const shopeeLink = (row.link_shopee || "").trim();
+    if (shopeeLink && !/^https:\/\/([a-z0-9-]+\.)*shopee\.co\.id\//.test(shopeeLink)) {
+      errors.push("link_shopee harus diawali https:// dan domain shopee.co.id");
+    }
+
+    const tokopediaLink = (row.link_tokopedia || "").trim();
+    if (tokopediaLink && !/^https:\/\/([a-z0-9-]+\.)*tokopedia\.com\//.test(tokopediaLink)) {
+      errors.push("link_tokopedia harus diawali https:// dan domain tokopedia.com");
+    }
+
+    const fileName = (row.nama_file_gambar || "").trim();
+    if (!fileName) errors.push("nama_file_gambar kosong");
+
+    let blob = null;
+    if (fileName) {
+      const zipEntry = zip.file(fileName);
+      if (!zipEntry) {
+        errors.push(`file gambar "${fileName}" tidak ditemukan di dalam ZIP`);
+      } else {
+        const ext = fileName.split(".").pop().toLowerCase();
+        if (!["jpg", "jpeg", "png", "webp"].includes(ext)) {
+          errors.push("format gambar harus jpg/jpeg/png/webp");
+        } else {
+          blob = await zipEntry.async("blob");
+          if (blob.size > 2 * 1024 * 1024) errors.push("ukuran gambar melebihi 2MB");
+        }
+      }
+    }
+
+    if (errors.length > 0) {
+      return { valid: false, rowIndex, error: errors.join("; ") };
+    }
+
+    return {
+      valid: true,
+      rowIndex,
+      nama,
+      kategori,
+      harga,
+      deskripsi,
+      shopee_link: shopeeLink || null,
+      tokopedia_link: tokopediaLink || null,
+      fileName,
+      blob,
+    };
+  }
+
+  document.getElementById("download-zip-template-btn").addEventListener("click", () => {
+    const csv = "nama_produk,kategori,harga,deskripsi,link_shopee,link_tokopedia,nama_file_gambar\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "produk.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById("zip-upload-btn").addEventListener("click", async () => {
+    const fileInput = document.getElementById("zip-file-input");
+    const resultBox = document.getElementById("zip-result");
+    const uploadBtn = document.getElementById("zip-upload-btn");
+    const file = fileInput.files[0];
+
+    if (!file) {
+      alert("Pilih file ZIP terlebih dahulu.");
+      return;
+    }
+    if (!currentUptId) {
+      alert("Tunggu data akun selesai dimuat, lalu coba lagi.");
+      return;
+    }
+
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = "Memproses...";
+    resultBox.classList.add("hidden");
+
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const csvEntry = zip.file("produk.csv");
+      if (!csvEntry) {
+        throw new Error("File produk.csv tidak ditemukan di dalam ZIP.");
+      }
+
+      const csvText = await csvEntry.async("string");
+      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+
+      if (!parsed.data || parsed.data.length === 0) {
+        throw new Error("Tidak ada baris produk untuk diproses.");
+      }
+
+      const validRows = [];
+      const failedRows = [];
+
+      for (let i = 0; i < parsed.data.length; i++) {
+        const outcome = await processProdukRow(parsed.data[i], i + 2, zip);
+        if (outcome.valid) validRows.push(outcome);
+        else failedRows.push(outcome);
+      }
+
+      let insertedCount = 0;
+      for (const row of validRows) {
+        try {
+          const image_url = await uploadFoto(new File([row.blob], row.fileName), currentUptId);
+          const { error: insertError } = await supabaseClient.from("produk").insert({
+            nama: row.nama,
+            kategori: row.kategori,
+            harga: row.harga,
+            deskripsi: row.deskripsi,
+            shopee_link: row.shopee_link,
+            tokopedia_link: row.tokopedia_link,
+            image_url,
+            upt_id: currentUptId,
+            status: "aktif",
+          });
+          if (insertError) throw insertError;
+          insertedCount++;
+        } catch (err) {
+          failedRows.push({ rowIndex: row.rowIndex, error: err.message || "gagal menyimpan" });
+        }
+      }
+
+      resultBox.classList.remove("hidden");
+      let html = `<p class="font-bold ${insertedCount > 0 ? "text-emerald-700" : "text-slate-600"}">${insertedCount} produk berhasil ditambahkan, ${failedRows.length} baris gagal.</p>`;
+      if (failedRows.length > 0) {
+        html += `<table class="w-full text-xs border-collapse mt-2"><thead><tr class="text-left text-slate-500"><th class="py-1 pr-3">Baris</th><th class="py-1">Alasan</th></tr></thead><tbody>`;
+        html += failedRows
+          .map((f) => `<tr><td class="py-1 pr-3 font-semibold">${escapeHtml(String(f.rowIndex))}</td><td class="py-1 text-red-600">${escapeHtml(f.error)}</td></tr>`)
+          .join("");
+        html += `</tbody></table>`;
+      }
+      resultBox.innerHTML = html;
+
+      if (insertedCount > 0) loadProdukList(currentUptId);
+      fileInput.value = "";
+    } catch (err) {
+      resultBox.classList.remove("hidden");
+      resultBox.innerHTML = `<p class="text-red-600 font-semibold">${escapeHtml(err.message || "Gagal memproses ZIP.")}</p>`;
+    } finally {
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = "Proses Upload";
+    }
+  });
 
   (async () => {
     const uptInfo = await requireUptSession();
