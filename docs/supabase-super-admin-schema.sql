@@ -11,8 +11,11 @@ alter table profiles add column if not exists role text not null default 'upt'
 -- untuk baris itu -- tapi akun 'upt' tetap wajib punya upt_id (dijaga oleh constraint di bawah).
 alter table profiles alter column upt_id drop not null;
 
-alter table profiles add constraint profiles_upt_wajib_untuk_role_upt
-  check (role = 'super_admin' or upt_id is not null);
+do $$ begin
+  alter table profiles add constraint profiles_upt_wajib_untuk_role_upt
+    check (role = 'super_admin' or upt_id is not null);
+exception when duplicate_object then null;
+end $$;
 
 -- Helper SECURITY DEFINER: mengecek role pemanggil tanpa memicu RLS pada
 -- profiles lagi. Sebuah policy RLS pada tabel profiles yang query ulang
@@ -32,6 +35,7 @@ $$;
 -- Super admin perlu baca profiles UPT lain untuk memetakan upt_id -> auth user id
 -- saat reset password (lihat Task 6). Baris sendiri sudah bisa dibaca lewat policy
 -- "User bisa baca profil sendiri" yang sudah ada.
+drop policy if exists "Super admin bisa baca semua profiles" on profiles;
 create policy "Super admin bisa baca semua profiles" on profiles
   for select
   to authenticated
@@ -46,7 +50,7 @@ alter table upt add column if not exists locked boolean not null default false;
 -- 3. Jejak audit setiap aksi tulis super admin. Tidak ada UI untuk melihatnya
 -- pada fase ini (lihat spec Bagian 8) -- tabel ini hanya dituliskan, dibaca manual
 -- lewat Supabase Table Editor kalau perlu verifikasi.
-create table admin_activity_log (
+create table if not exists admin_activity_log (
   id uuid primary key default gen_random_uuid(),
   admin_id uuid references profiles(id),
   action text not null,
@@ -58,6 +62,7 @@ create table admin_activity_log (
 
 alter table admin_activity_log enable row level security;
 
+drop policy if exists "Super admin bisa baca activity log" on admin_activity_log;
 create policy "Super admin bisa baca activity log" on admin_activity_log
   for select
   to authenticated

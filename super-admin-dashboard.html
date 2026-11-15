@@ -848,6 +848,7 @@
         if (tabName === "analytics") loadAnalyticsTab();
       };
       initTabs();
+      loadKelolaUptTable();
     } catch (err) {
       console.error("Dashboard bootstrap failed:", err);
       document.getElementById("header-admin-nama").textContent = "Gagal memuat, silakan refresh halaman.";

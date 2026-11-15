@@ -80,6 +80,7 @@ window.toggleLockUpt = async function (uptId, currentLocked) {
     return;
   }
   await loadKelolaUptTable();
+  if (typeof loadUptTable === "function") loadUptTable();
 };
 
 window.openResetPasswordModal = async function (uptId) {
@@ -144,6 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       document.getElementById("edit-upt-modal").classList.add("hidden");
       await loadKelolaUptTable();
+      if (typeof loadUptTable === "function") loadUptTable();
     });
   }
 });
