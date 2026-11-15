@@ -769,7 +769,34 @@
       <button onclick="document.getElementById('reset-password-modal').classList.add('hidden')" class="w-full py-2.5 rounded-lg bg-primary-container text-white font-bold text-sm">Tutup</button>
     </div>
   </div>
-  <div id="panel-transaksi" data-panel="transaksi" class="space-y-6 hidden"></div>
+  <div id="panel-transaksi" data-panel="transaksi" class="space-y-6 hidden">
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle">
+      <h2 class="font-bold text-lg text-primary mb-4">Transaksi Seluruh UPT</h2>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <select id="transaksi-filter-upt" class="bg-surface-container px-3 py-1.5 rounded-xl border border-border-subtle text-xs font-semibold outline-none"><option value="">Semua UPT</option></select>
+        <select id="transaksi-filter-channel" class="bg-surface-container px-3 py-1.5 rounded-xl border border-border-subtle text-xs font-semibold outline-none">
+          <option value="">Semua Channel</option>
+          <option value="WhatsApp">WhatsApp</option><option value="Shopee">Shopee</option>
+          <option value="Tokopedia">Tokopedia</option><option value="Offline">Offline</option><option value="Lainnya">Lainnya</option>
+        </select>
+        <input id="transaksi-filter-dari" type="date" class="bg-surface-container px-3 py-1.5 rounded-xl border border-border-subtle text-xs font-semibold outline-none">
+        <input id="transaksi-filter-sampai" type="date" class="bg-surface-container px-3 py-1.5 rounded-xl border border-border-subtle text-xs font-semibold outline-none">
+        <input id="transaksi-search" type="text" placeholder="Cari produk/UPT..." class="bg-surface-container px-3 py-1.5 rounded-xl border border-border-subtle text-xs font-semibold outline-none flex-1 min-w-[160px]">
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-border-subtle/80">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead class="bg-surface-container"><tr class="text-slate-700 font-extrabold uppercase tracking-wider text-[11px]">
+            <th class="py-3 px-3.5">Tanggal</th><th class="py-3 px-3">UPT</th><th class="py-3 px-3">Produk</th>
+            <th class="py-3 px-3 text-right">Jumlah</th><th class="py-3 px-3 text-right">Total</th><th class="py-3 px-3">Channel</th><th class="py-3 px-3.5 text-center">Aksi</th>
+          </tr></thead>
+          <tbody id="transaksi-table-body" class="divide-y divide-border-subtle/70 bg-white"></tbody>
+        </table>
+      </div>
+      <div class="flex justify-center mt-4">
+        <button id="transaksi-load-more" class="px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-bold text-sm">Muat lebih banyak</button>
+      </div>
+    </div>
+  </div>
   <div id="panel-analytics" data-panel="analytics" class="space-y-6 hidden"></div>
 </main>
 
@@ -779,6 +806,7 @@
 <script src="/assets/js/monitoring-aggregates.js"></script>
 <script src="/assets/js/super-admin-overview.js"></script>
 <script src="/assets/js/super-admin-kelola-upt.js"></script>
+<script src="/assets/js/super-admin-transaksi.js"></script>
 <script>
   (async function bootstrap() {
     try {
@@ -787,6 +815,7 @@
       document.getElementById("header-admin-nama").textContent = admin.nama || admin.email;
       window.onTabActivated = function (tabName) {
         if (tabName === "kelola-upt") loadKelolaUptTable();
+        if (tabName === "transaksi") loadTransaksiTab();
       };
       initTabs();
     } catch (err) {
