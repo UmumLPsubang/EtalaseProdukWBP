@@ -78,7 +78,7 @@ async function loadProdukPage() {
         <td class="py-2.5 px-3 text-right font-bold">${formatRupiah(p.harga)}</td>
         <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${statusClass}">${statusLabel}</span></td>
         <td class="py-2.5 px-3.5 text-center space-x-1">
-          <button class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 text-[11px] font-bold border border-rose-200" onclick="window.toggleProdukStatus('${p.id}', '${p.status}', '${(p.image_url || "").replace(/'/g, "\\'")}')">${toggleLabel}</button>
+          <button class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-700 text-[11px] font-bold border border-rose-200" onclick="window.toggleProdukStatus('${p.id}', '${p.status}')">${toggleLabel}</button>
           <button class="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 text-[11px] font-bold border border-blue-200" onclick="window.openGantiFotoModal('${p.id}', '${p.upt_id}')">Ganti Foto</button>
         </td>
       </tr>`;
@@ -90,14 +90,20 @@ async function loadProdukPage() {
   document.getElementById("produk-load-more").style.display = data.length < __produkPageSize ? "none" : "inline-block";
 }
 
-window.toggleProdukStatus = async function (produkId, currentStatus, currentImageUrl) {
+window.toggleProdukStatus = async function (produkId, currentStatus) {
   const newStatus = currentStatus === "nonaktif" ? "aktif" : "nonaktif";
   if (!confirm(`Yakin ingin mengubah status produk ini jadi "${newStatus}"?`)) return;
+
+  const { data: currentProduk, error: fetchError } = await supabaseClient.from("produk").select("image_url").eq("id", produkId).single();
+  if (fetchError) {
+    alert("Gagal memuat data produk terbaru: " + fetchError.message);
+    return;
+  }
 
   const { error } = await supabaseClient.rpc("admin_update_produk", {
     p_produk_id: produkId,
     p_status: newStatus,
-    p_image_url: currentImageUrl || null,
+    p_image_url: currentProduk.image_url,
   });
 
   if (error) {
