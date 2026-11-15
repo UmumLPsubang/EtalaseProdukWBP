@@ -444,6 +444,13 @@
 
   const VALID_KATEGORI = ["Kriya", "Tekstil", "Kuliner", "Mebel", "Pertanian", "Jasa", "Lainnya"];
 
+  function mimeTypeForExt(ext) {
+    if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+    if (ext === "png") return "image/png";
+    if (ext === "webp") return "image/webp";
+    return "application/octet-stream";
+  }
+
   async function processProdukRow(row, rowIndex, zip) {
     const errors = [];
 
@@ -473,12 +480,13 @@
     if (!fileName) errors.push("nama_file_gambar kosong");
 
     let blob = null;
+    let ext = null;
     if (fileName) {
       const zipEntry = zip.file(fileName);
       if (!zipEntry) {
         errors.push(`file gambar "${fileName}" tidak ditemukan di dalam ZIP`);
       } else {
-        const ext = fileName.split(".").pop().toLowerCase();
+        ext = fileName.split(".").pop().toLowerCase();
         if (!["jpg", "jpeg", "png", "webp"].includes(ext)) {
           errors.push("format gambar harus jpg/jpeg/png/webp");
         } else {
@@ -503,6 +511,7 @@
       tokopedia_link: tokopediaLink || null,
       fileName,
       blob,
+      ext,
     };
   }
 
@@ -554,15 +563,19 @@
       const failedRows = [];
 
       for (let i = 0; i < parsed.data.length; i++) {
-        const outcome = await processProdukRow(parsed.data[i], i + 2, zip);
-        if (outcome.valid) validRows.push(outcome);
-        else failedRows.push(outcome);
+        try {
+          const outcome = await processProdukRow(parsed.data[i], i + 2, zip);
+          if (outcome.valid) validRows.push(outcome);
+          else failedRows.push(outcome);
+        } catch (err) {
+          failedRows.push({ rowIndex: i + 2, error: err.message || "gagal memproses baris (ZIP entry mungkin rusak)" });
+        }
       }
 
       let insertedCount = 0;
       for (const row of validRows) {
         try {
-          const image_url = await uploadFoto(new File([row.blob], row.fileName), currentUptId);
+          const image_url = await uploadFoto(new File([row.blob], row.fileName, { type: mimeTypeForExt(row.ext) }), currentUptId);
           const { error: insertError } = await supabaseClient.from("produk").insert({
             nama: row.nama,
             kategori: row.kategori,
