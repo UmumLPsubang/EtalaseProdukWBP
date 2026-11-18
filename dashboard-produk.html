@@ -125,6 +125,19 @@
         </div>
       </div>
 
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="grab-link">Link Grab Food (opsional)</label>
+          <input id="grab-link" type="url" placeholder="https://food.grab.com/..."
+            class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="gofood-link">Link GoFood (opsional)</label>
+          <input id="gofood-link" type="url" placeholder="https://gofood.co.id/..."
+            class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+        </div>
+      </div>
+
       <div>
         <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="foto">Foto Produk</label>
         <input id="foto" name="foto" type="file" accept="image/png,image/jpeg,image/webp"
@@ -153,7 +166,7 @@
       </div>
       <p class="text-xs text-slate-500">
         Siapkan 1 file ZIP berisi file <code class="bg-slate-100 px-1 rounded">produk.csv</code> (nama file wajib persis itu) dan gambar-gambar produk, semua di root ZIP (tidak di dalam folder).
-        Kolom CSV wajib: <code class="bg-slate-100 px-1 rounded">nama_produk,kategori,harga,deskripsi,link_shopee,link_tokopedia,nama_file_gambar</code>.
+        Kolom CSV wajib: <code class="bg-slate-100 px-1 rounded">nama_produk,kategori,harga,deskripsi,link_shopee,link_tokopedia,link_grab,link_gofood,nama_file_gambar</code>.
         Kategori harus salah satu dari: Kriya, Tekstil, Kuliner, Mebel, Pertanian, Jasa, Lainnya. Nama file gambar di kolom <code class="bg-slate-100 px-1 rounded">nama_file_gambar</code> harus persis sama dengan nama file gambar di dalam ZIP. Maks 2MB per gambar, format JPG/PNG/WebP. Harga harus angka bulat tanpa titik atau koma (misal 10000, bukan 10.000).
       </p>
       <input id="zip-file-input" type="file" accept=".zip,application/zip"
@@ -200,6 +213,8 @@
     document.getElementById("deskripsi").value = p.deskripsi || "";
     document.getElementById("shopee-link").value = p.shopee_link || "";
     document.getElementById("tokopedia-link").value = p.tokopedia_link || "";
+    document.getElementById("grab-link").value = p.grab_link || "";
+    document.getElementById("gofood-link").value = p.gofood_link || "";
     document.getElementById("foto").value = "";
 
     form.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -262,6 +277,8 @@
 
     const shopeeLink = document.getElementById("shopee-link").value.trim();
     const tokopediaLink = document.getElementById("tokopedia-link").value.trim();
+    const grabLink = document.getElementById("grab-link").value.trim();
+    const gofoodLink = document.getElementById("gofood-link").value.trim();
     const urlPattern = /^https:\/\/.+/;
 
     if (shopeeLink && !urlPattern.test(shopeeLink)) {
@@ -272,6 +289,18 @@
     }
     if (tokopediaLink && !urlPattern.test(tokopediaLink)) {
       showMessage("Link Tokopedia harus diawali https://", "error");
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingProdukId ? "Simpan Perubahan" : "Simpan Produk";
+      return;
+    }
+    if (grabLink && !urlPattern.test(grabLink)) {
+      showMessage("Link Grab Food harus diawali https://", "error");
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingProdukId ? "Simpan Perubahan" : "Simpan Produk";
+      return;
+    }
+    if (gofoodLink && !urlPattern.test(gofoodLink)) {
+      showMessage("Link GoFood harus diawali https://", "error");
       submitBtn.disabled = false;
       submitBtn.textContent = editingProdukId ? "Simpan Perubahan" : "Simpan Produk";
       return;
@@ -299,6 +328,8 @@
         deskripsi,
         shopee_link: shopeeLink || null,
         tokopedia_link: tokopediaLink || null,
+        grab_link: grabLink || null,
+        gofood_link: gofoodLink || null,
       };
       if (image_url) payload.image_url = image_url;
 
@@ -371,7 +402,7 @@
     const container = document.getElementById("produk-list");
     const { data, error } = await supabaseClient
       .from("produk")
-      .select("id, nama, kategori, harga, deskripsi, image_url, status, shopee_link, tokopedia_link")
+      .select("id, nama, kategori, harga, deskripsi, image_url, status, shopee_link, tokopedia_link, grab_link, gofood_link")
       .eq("upt_id", uptId)
       .order("created_at", { ascending: false });
 
@@ -476,6 +507,16 @@
       errors.push("link_tokopedia harus diawali https:// dan domain tokopedia.com");
     }
 
+    const grabLink = (row.link_grab || "").trim();
+    if (grabLink && !/^https:\/\/([a-z0-9-]+\.)*grab\.com\//.test(grabLink)) {
+      errors.push("link_grab harus diawali https:// dan domain grab.com");
+    }
+
+    const gofoodLink = (row.link_gofood || "").trim();
+    if (gofoodLink && !/^https:\/\/([a-z0-9-]+\.)*(gofood\.co\.id|gofood\.link)\//.test(gofoodLink)) {
+      errors.push("link_gofood harus diawali https:// dan domain gofood.co.id atau gofood.link");
+    }
+
     const fileName = (row.nama_file_gambar || "").trim();
     if (!fileName) errors.push("nama_file_gambar kosong");
 
@@ -509,6 +550,8 @@
       deskripsi,
       shopee_link: shopeeLink || null,
       tokopedia_link: tokopediaLink || null,
+      grab_link: grabLink || null,
+      gofood_link: gofoodLink || null,
       fileName,
       blob,
       ext,
@@ -516,7 +559,7 @@
   }
 
   document.getElementById("download-zip-template-btn").addEventListener("click", () => {
-    const csv = "nama_produk,kategori,harga,deskripsi,link_shopee,link_tokopedia,nama_file_gambar\n";
+    const csv = "nama_produk,kategori,harga,deskripsi,link_shopee,link_tokopedia,link_grab,link_gofood,nama_file_gambar\n";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -586,6 +629,8 @@
             deskripsi: row.deskripsi,
             shopee_link: row.shopee_link,
             tokopedia_link: row.tokopedia_link,
+            grab_link: row.grab_link,
+            gofood_link: row.gofood_link,
             image_url,
             upt_id: currentUptId,
             status: "aktif",

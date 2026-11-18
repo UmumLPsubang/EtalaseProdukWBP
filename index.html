@@ -207,6 +207,12 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
     if (p.tokopedia_link && p.tokopedia_link.startsWith("https://")) {
       buttons.push(`<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#03AC0E] hover:bg-[#029a0c] text-white text-sm font-bold transition-all shadow-sm" href="${escapeHtml(p.tokopedia_link)}" rel="noopener noreferrer" target="_blank">Beli di Tokopedia</a>`);
     }
+    if (p.grab_link && p.grab_link.startsWith("https://")) {
+      buttons.push(`<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#00B14F] hover:bg-[#009942] text-white text-sm font-bold transition-all shadow-sm" href="${escapeHtml(p.grab_link)}" rel="noopener noreferrer" target="_blank">Pesan via Grab Food</a>`);
+    }
+    if (p.gofood_link && p.gofood_link.startsWith("https://")) {
+      buttons.push(`<a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#F4061E] hover:bg-[#d8051a] text-white text-sm font-bold transition-all shadow-sm" href="${escapeHtml(p.gofood_link)}" rel="noopener noreferrer" target="_blank">Pesan via GoFood</a>`);
+    }
 
     if (buttons.length === 0) {
       return `<p class="text-xs text-outline italic px-1">Nomor WA belum tersedia, hubungi Divisi Pemasyarakatan Kanwil Jabar.</p>`;
@@ -266,7 +272,7 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
     const [produkResult, unitsSold] = await Promise.all([
       supabaseClient
         .from("produk")
-        .select("id, nama, kategori, harga, deskripsi, image_url, shopee_link, tokopedia_link, upt:upt_id (nama, whatsapp)")
+        .select("id, nama, kategori, harga, deskripsi, image_url, shopee_link, tokopedia_link, grab_link, gofood_link, upt:upt_id (nama, whatsapp)")
         .eq("status", "aktif")
         .order("created_at", { ascending: false }),
       loadUnitsSold(),
