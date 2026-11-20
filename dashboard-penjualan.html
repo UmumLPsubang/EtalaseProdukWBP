@@ -163,12 +163,31 @@
       </div>
     </section>
     </div>
+
+    <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 mt-6">
+      <div class="flex items-center justify-between mb-4 gap-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[20px]">map</span>
+          </div>
+          <div>
+            <h2 class="font-bold text-base text-primary">Distribusi Penjualan per Wilayah</h2>
+            <p class="text-xs text-on-surface-variant">Akumulasi omzet seluruh UPT berdasarkan wilayah</p>
+          </div>
+        </div>
+        <span class="text-[10px] font-semibold text-slate-500 shrink-0 hidden sm:inline">Akumulasi 33 Lapas &amp; Rutan</span>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-xs" id="wilayah-distribusi-list">
+        <p class="col-span-full text-center text-slate-400 py-3">Memuat...</p>
+      </div>
+    </section>
   </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="/assets/js/supabase-client.js"></script>
 <script src="/assets/js/upt-dashboard.js"></script>
+<script src="/assets/js/wilayah-distribusi.js"></script>
 <script>
   let currentUptId = null;
   let ownProdukList = [];
@@ -410,6 +429,7 @@
     renderHeader("penjualan", uptInfo);
     renderRiwayatTransaksi();
     loadProdukDropdown();
+    initWilayahDistribusi();
   })();
 </script>
 </body>

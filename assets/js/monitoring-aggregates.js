@@ -136,7 +136,11 @@ async function loadMonitoringAggregates() {
 
   renderChannelDonut(transaksiList);
   renderKategoriKomposisi(produkList);
-  renderWilayahDistribusi(transaksiList, uptList);
+  // Distribusi wilayah hanya ada di halaman internal (dashboard Super Admin),
+  // yang memuat assets/js/wilayah-distribusi.js. Halaman publik tidak memuatnya.
+  if (typeof renderWilayahDistribusi === "function") {
+    renderWilayahDistribusi(transaksiList, uptList);
+  }
   window.__uptAggregateData = { produkList, transaksiList };
 }
 
@@ -234,42 +238,8 @@ function renderKategoriKomposisi(produkList) {
   }).join("");
 }
 
-function renderWilayahDistribusi(transaksiList, uptList) {
-  const container = document.getElementById("wilayah-distribusi-list");
-  if (!container) return;
-
-  const wilayahByUptId = new Map(uptList.map((u) => [u.id, u.wilayah || "Belum Ditentukan"]));
-  const uptCountByWilayah = new Map();
-  uptList.forEach((u) => {
-    const wilayah = u.wilayah || "Belum Ditentukan";
-    uptCountByWilayah.set(wilayah, (uptCountByWilayah.get(wilayah) || 0) + 1);
-  });
-
-  const omzetByWilayah = new Map();
-  let totalOmzet = 0;
-  transaksiList.forEach((t) => {
-    const wilayah = wilayahByUptId.get(t.upt_id) || "Belum Ditentukan";
-    const nilai = Number(t.total_harga || 0);
-    omzetByWilayah.set(wilayah, (omzetByWilayah.get(wilayah) || 0) + nilai);
-    totalOmzet += nilai;
-  });
-
-  const allWilayah = Array.from(uptCountByWilayah.keys()).sort();
-  container.innerHTML = allWilayah.map((wilayah) => {
-    const omzet = omzetByWilayah.get(wilayah) || 0;
-    const pct = totalOmzet > 0 ? ((omzet / totalOmzet) * 100).toFixed(1) : "0.0";
-    const jumlahUpt = uptCountByWilayah.get(wilayah);
-    return `
-      <div class="p-2 bg-white rounded-lg border border-slate-200">
-        <div class="flex justify-between items-center">
-          <span class="text-[11px] font-bold text-slate-700">${escapeHtml(wilayah)}</span>
-          <span class="text-[10px] font-extrabold text-primary">${pct}%</span>
-        </div>
-        <span class="text-xs font-extrabold text-primary block mt-0.5">${formatRupiah(omzet)}</span>
-        <span class="text-[10px] text-slate-500">${jumlahUpt} UPT</span>
-      </div>`;
-  }).join("");
-}
+// renderWilayahDistribusi() ada di assets/js/wilayah-distribusi.js, dimuat
+// sebelum file ini pada halaman yang menampilkan distribusi wilayah.
 
 function fillUptRowAggregates(uptRows) {
   const data = window.__uptAggregateData;
