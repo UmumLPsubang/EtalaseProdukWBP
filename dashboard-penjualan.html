@@ -131,8 +131,9 @@
         <button id="download-template-btn" type="button" class="text-xs font-bold text-primary-container hover:underline">Download Template CSV</button>
       </div>
       <p class="text-xs text-slate-500">
-        Format kolom wajib: <code class="bg-slate-100 px-1 rounded">nama_produk,jumlah,total_harga,channel,tanggal</code>.
+        Format kolom: <code class="bg-slate-100 px-1 rounded">nama_produk,jumlah,total_harga,channel,tanggal</code>.
         Channel harus salah satu dari: WhatsApp, Shopee, Tokopedia, Offline, Lainnya. Tanggal format YYYY-MM-DD.
+        <strong>Kolom <code class="bg-slate-100 px-1 rounded">total_harga</code> boleh dikosongkan</strong> &mdash; akan dihitung otomatis dari harga produk &times; jumlah. Isi hanya bila ada potongan harga atau ongkir.
       </p>
       <input id="csv-file-input" type="file" accept=".csv,text/csv"
         class="w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:font-semibold file:text-xs hover:file:bg-slate-200">
@@ -554,8 +555,25 @@
     if (!jumlahStr || isNaN(jumlah) || jumlah <= 0) errors.push("jumlah harus angka positif");
     else if (!Number.isInteger(jumlah)) errors.push("jumlah harus bilangan bulat positif");
 
-    const total = Number(row.total_harga);
-    if (!row.total_harga || isNaN(total) || total < 0) errors.push("total_harga harus angka");
+    // total_harga boleh dikosongkan: kalau kosong, dihitung dari harga produk
+    // dikali jumlah -- sama seperti perilaku formulir manual. Kalau diisi,
+    // isian itulah yang dipakai, supaya potongan harga dan ongkir tetap bisa
+    // dicatat apa adanya.
+    const totalStr = (row.total_harga || "").trim();
+    let total;
+    if (totalStr === "") {
+      if (produk && produk.harga != null && Number.isInteger(jumlah) && jumlah > 0) {
+        total = Number(produk.harga) * jumlah;
+      } else if (produk && produk.harga == null) {
+        errors.push("total_harga kosong dan harga produk belum diisi, jadi tidak bisa dihitung otomatis");
+      }
+      // Kalau produk atau jumlahnya sendiri sudah bermasalah, kesalahan itu
+      // sudah tercatat di atas -- tidak perlu ditambah pesan kedua yang
+      // membingungkan.
+    } else {
+      total = Number(totalStr);
+      if (isNaN(total) || total < 0) errors.push("total_harga harus angka");
+    }
 
     const channel = (row.channel || "").trim();
     if (!VALID_CHANNELS.includes(channel)) errors.push(`channel "${channel}" tidak valid`);
