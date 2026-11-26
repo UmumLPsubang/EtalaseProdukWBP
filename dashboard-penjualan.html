@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<meta content="width=device-width, initial-scale=1.0" name="viewport"><link href="/favicon.ico" rel="icon" sizes="any"><link href="/assets/img/favicon-32.png" rel="icon" sizes="32x32" type="image/png"><link href="/assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 <title>Penjualan - Panel UPT Karya WBP</title>
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
@@ -144,7 +144,13 @@
     </div>
 
     <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6">
-      <h2 class="font-bold text-base text-primary mb-4">Riwayat Transaksi</h2>
+      <div class="flex items-center justify-between flex-wrap gap-2 mb-4">
+        <h2 class="font-bold text-base text-primary">Riwayat Transaksi</h2>
+        <button id="export-transaksi-btn" type="button"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary text-xs font-bold transition border border-border-subtle disabled:opacity-50">
+          <span class="material-symbols-outlined text-[16px]">download</span>Export ke Excel
+        </button>
+      </div>
       <div class="overflow-x-auto max-h-[400px] overflow-y-auto rounded-lg border border-border-subtle/80">
         <table class="w-full text-left text-xs border-collapse">
           <thead class="sticky top-0 bg-surface-container">
@@ -154,14 +160,56 @@
               <th class="py-2.5 px-3 text-right">Jumlah</th>
               <th class="py-2.5 px-3 text-right">Total</th>
               <th class="py-2.5 px-3">Channel</th>
+              <th class="py-2.5 px-3 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody id="riwayat-table-body" class="divide-y divide-border-subtle/70 bg-white">
-            <tr><td colspan="5" class="py-4 px-3 text-center text-slate-400">Memuat riwayat...</td></tr>
+            <tr><td colspan="6" class="py-4 px-3 text-center text-slate-400">Memuat riwayat...</td></tr>
           </tbody>
         </table>
       </div>
     </section>
+
+    <!-- Modal koreksi transaksi -->
+    <div id="edit-transaksi-modal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 p-4">
+      <div class="bg-white rounded-2xl shadow-xl border border-border-subtle w-full max-w-md p-6 space-y-4">
+        <div>
+          <h3 class="font-bold text-base text-primary">Koreksi Transaksi</h3>
+          <p class="text-xs text-slate-500" id="edit-transaksi-produk"></p>
+        </div>
+        <input type="hidden" id="edit-transaksi-id">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="edit-transaksi-tanggal">Tanggal</label>
+            <input id="edit-transaksi-tanggal" type="date" class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="edit-transaksi-channel">Channel</label>
+            <select id="edit-transaksi-channel" class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Shopee">Shopee</option>
+              <option value="Tokopedia">Tokopedia</option>
+              <option value="Offline">Offline</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="edit-transaksi-jumlah">Jumlah</label>
+            <input id="edit-transaksi-jumlah" type="number" min="1" step="1" class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="edit-transaksi-total">Total (Rp)</label>
+            <input id="edit-transaksi-total" type="number" min="0" step="500" class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-500">Produk tidak bisa diubah di sini. Kalau produknya yang salah, hapus transaksi ini lalu catat ulang.</p>
+        <div id="edit-transaksi-message" class="hidden text-sm font-semibold rounded-lg px-3 py-2"></div>
+        <div class="flex gap-3">
+          <button id="edit-transaksi-simpan" type="button" class="flex-1 py-2.5 rounded-lg bg-primary-container text-white font-bold text-sm hover:bg-primary transition disabled:opacity-50">Simpan Perubahan</button>
+          <button id="edit-transaksi-batal" type="button" class="px-5 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition">Batal</button>
+        </div>
+      </div>
+    </div>
     </div>
 
     <section class="bg-white rounded-2xl shadow-sm border border-border-subtle p-6 mt-6">
@@ -203,35 +251,198 @@
     return "Rp " + Number(n).toLocaleString("id-ID");
   }
 
+  // Disimpan supaya tombol Export dan modal koreksi memakai data yang sama
+  // persis dengan yang sedang tampil di tabel, tanpa mengambil ulang.
+  let riwayatCache = [];
+
   async function renderRiwayatTransaksi() {
     const tbody = document.getElementById("riwayat-table-body");
     const { data, error } = await supabaseClient
       .from("transaksi_penjualan")
-      .select("tanggal_transaksi, jumlah, total_harga, channel, produk:produk_id (nama)")
+      .select("id, tanggal_transaksi, jumlah, total_harga, channel, produk:produk_id (nama)")
       .eq("upt_id", currentUptId)
       .order("tanggal_transaksi", { ascending: false })
       .limit(100);
 
     if (error) {
-      tbody.innerHTML = `<tr><td colspan="5" class="py-4 px-3 text-center text-red-500">Gagal memuat riwayat.</td></tr>`;
+      riwayatCache = [];
+      tbody.innerHTML = `<tr><td colspan="6" class="py-4 px-3 text-center text-red-500">Gagal memuat riwayat.</td></tr>`;
       console.error(error);
       return;
     }
 
-    if (!data || data.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="py-4 px-3 text-center text-slate-400">Belum ada transaksi.</td></tr>`;
+    riwayatCache = data || [];
+
+    if (riwayatCache.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="py-4 px-3 text-center text-slate-400">Belum ada transaksi.</td></tr>`;
       return;
     }
 
-    tbody.innerHTML = data.map((t) => `
+    tbody.innerHTML = riwayatCache.map((t) => `
       <tr>
         <td class="py-2.5 px-3">${escapeHtml(t.tanggal_transaksi)}</td>
         <td class="py-2.5 px-3">${escapeHtml(t.produk ? t.produk.nama : "-")}</td>
         <td class="py-2.5 px-3 text-right">${escapeHtml(String(t.jumlah))}</td>
         <td class="py-2.5 px-3 text-right font-semibold">${escapeHtml(formatRupiah(t.total_harga))}</td>
         <td class="py-2.5 px-3">${escapeHtml(t.channel || "-")}</td>
+        <td class="py-2.5 px-3 text-right whitespace-nowrap">
+          <button class="edit-transaksi-btn px-2 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary text-[11px] font-bold transition border border-border-subtle" data-id="${t.id}">Edit</button>
+          <button class="hapus-transaksi-btn px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-[11px] font-bold transition border border-red-200" data-id="${t.id}">Hapus</button>
+        </td>
       </tr>`).join("");
+
+    tbody.querySelectorAll(".edit-transaksi-btn").forEach((btn) => {
+      btn.addEventListener("click", () => bukaModalKoreksi(btn.dataset.id));
+    });
+    tbody.querySelectorAll(".hapus-transaksi-btn").forEach((btn) => {
+      btn.addEventListener("click", () => hapusTransaksi(btn.dataset.id));
+    });
   }
+
+  function bukaModalKoreksi(id) {
+    const t = riwayatCache.find((x) => String(x.id) === String(id));
+    if (!t) return;
+
+    document.getElementById("edit-transaksi-id").value = t.id;
+    document.getElementById("edit-transaksi-produk").textContent = t.produk ? t.produk.nama : "(produk sudah dihapus)";
+    document.getElementById("edit-transaksi-tanggal").value = t.tanggal_transaksi || "";
+    document.getElementById("edit-transaksi-jumlah").value = t.jumlah;
+    document.getElementById("edit-transaksi-total").value = t.total_harga;
+    document.getElementById("edit-transaksi-channel").value = t.channel || "Lainnya";
+    document.getElementById("edit-transaksi-message").classList.add("hidden");
+
+    const modal = document.getElementById("edit-transaksi-modal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }
+
+  function tutupModalKoreksi() {
+    const modal = document.getElementById("edit-transaksi-modal");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+
+  async function hapusTransaksi(id) {
+    const t = riwayatCache.find((x) => String(x.id) === String(id));
+    if (!t) return;
+    const nama = t.produk ? t.produk.nama : "produk yang sudah dihapus";
+    if (!confirm(`Hapus transaksi ${nama} tanggal ${t.tanggal_transaksi} sebesar ${formatRupiah(t.total_harga)}?\n\nAngka penjualan UPT Anda akan berkurang dan tidak bisa dikembalikan.`)) {
+      return;
+    }
+
+    // .select() dipakai supaya baris yang benar-benar terhapus bisa dihitung.
+    // Tanpa itu, penolakan oleh RLS tidak memunculkan error dan penghapusan
+    // yang gagal terlihat seolah berhasil.
+    const { data, error } = await supabaseClient
+      .from("transaksi_penjualan")
+      .delete()
+      .eq("id", id)
+      .select();
+
+    if (error) {
+      alert("Gagal menghapus transaksi: " + (error.message || "terjadi kesalahan"));
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert("Transaksi tidak ditemukan atau bukan milik UPT Anda. Mungkin sudah dihapus sebelumnya.");
+    }
+
+    await refreshSetelahPerubahan();
+  }
+
+  async function simpanKoreksiTransaksi() {
+    const btn = document.getElementById("edit-transaksi-simpan");
+    const msg = document.getElementById("edit-transaksi-message");
+    const id = document.getElementById("edit-transaksi-id").value;
+
+    const tanggal = document.getElementById("edit-transaksi-tanggal").value;
+    const jumlah = parseInt(document.getElementById("edit-transaksi-jumlah").value, 10);
+    const total = parseFloat(document.getElementById("edit-transaksi-total").value);
+    const channel = document.getElementById("edit-transaksi-channel").value;
+
+    function tampilkanPesan(text) {
+      msg.textContent = text;
+      msg.className = "text-sm font-semibold rounded-lg px-3 py-2 bg-red-50 text-red-700 border border-red-200";
+      msg.classList.remove("hidden");
+    }
+
+    if (!tanggal) return tampilkanPesan("Tanggal wajib diisi.");
+    if (!Number.isInteger(jumlah) || jumlah < 1) return tampilkanPesan("Jumlah harus bilangan bulat minimal 1.");
+    if (!Number.isFinite(total) || total < 0) return tampilkanPesan("Total harga tidak valid.");
+
+    btn.disabled = true;
+    btn.textContent = "Menyimpan...";
+
+    const { data, error } = await supabaseClient
+      .from("transaksi_penjualan")
+      .update({ tanggal_transaksi: tanggal, jumlah, total_harga: total, channel })
+      .eq("id", id)
+      .select();
+
+    btn.disabled = false;
+    btn.textContent = "Simpan Perubahan";
+
+    if (error) {
+      tampilkanPesan("Gagal menyimpan: " + (error.message || "terjadi kesalahan"));
+      return;
+    }
+    if (!data || data.length === 0) {
+      tampilkanPesan("Transaksi tidak ditemukan atau bukan milik UPT Anda.");
+      return;
+    }
+
+    tutupModalKoreksi();
+    await refreshSetelahPerubahan();
+  }
+
+  // Mengubah atau menghapus transaksi juga mengubah angka pada kartu
+  // "Distribusi Penjualan per Wilayah" di halaman yang sama, jadi kartu itu
+  // ikut dimuat ulang -- bukan hanya tabel riwayatnya.
+  async function refreshSetelahPerubahan() {
+    await renderRiwayatTransaksi();
+    if (typeof initWilayahDistribusi === "function") await initWilayahDistribusi();
+  }
+
+  function exportRiwayatKeCsv() {
+    if (riwayatCache.length === 0) {
+      alert("Belum ada transaksi untuk diexport.");
+      return;
+    }
+
+    // Excel berbahasa Indonesia memakai titik koma sebagai pemisah kolom.
+    // Baris "sep=;" di awal memberi tahu Excel pemisah mana yang dipakai,
+    // sehingga berkasnya terbuka rapi per kolom, bukan menumpuk di kolom A.
+    const pemisah = ";";
+    const bersihkan = (v) => {
+      const s = String(v == null ? "" : v);
+      return /[";\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    const baris = [
+      "sep=" + pemisah,
+      ["Tanggal", "Produk", "Jumlah", "Total Harga", "Channel"].join(pemisah),
+      ...riwayatCache.map((t) => [
+        t.tanggal_transaksi,
+        t.produk ? t.produk.nama : "-",
+        t.jumlah,
+        t.total_harga,
+        t.channel || "-",
+      ].map(bersihkan).join(pemisah)),
+    ];
+
+    // BOM UTF-8 supaya huruf beraksen tidak rusak saat dibuka di Excel.
+    const blob = new Blob(["﻿" + baris.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `riwayat-transaksi-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  document.getElementById("edit-transaksi-simpan").addEventListener("click", simpanKoreksiTransaksi);
+  document.getElementById("edit-transaksi-batal").addEventListener("click", tutupModalKoreksi);
+  document.getElementById("export-transaksi-btn").addEventListener("click", exportRiwayatKeCsv);
 
   async function loadProdukDropdown() {
     const select = document.getElementById("penjualan-produk");
