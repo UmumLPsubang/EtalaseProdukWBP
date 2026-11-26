@@ -95,6 +95,7 @@
             <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="penjualan-total">Total Harga (Rp) *</label>
             <input id="penjualan-total" type="number" min="0" step="500" required
               class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
+            <p class="text-[11px] text-slate-500 mt-1" id="penjualan-total-hint">Terisi otomatis dari harga produk &times; jumlah. Boleh diubah bila ada potongan harga atau ongkir.</p>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-4">
@@ -448,7 +449,7 @@
     const select = document.getElementById("penjualan-produk");
     const { data, error } = await supabaseClient
       .from("produk")
-      .select("id, nama")
+      .select("id, nama, harga")
       .eq("upt_id", currentUptId)
       .eq("status", "aktif")
       .order("nama", { ascending: true });
@@ -466,6 +467,33 @@
   }
 
   document.getElementById("penjualan-tanggal").valueAsDate = new Date();
+
+  // Total harga dihitung dari harga produk x jumlah setiap kali produk atau
+  // jumlahnya berubah. Field-nya sengaja TIDAK dikunci: penjualan nyata sering
+  // memakai potongan harga, harga grosir, atau tambahan ongkir, dan mengunci
+  // field ini akan memaksa petugas mencatat angka yang tidak sesuai kenyataan.
+  function hitungTotalOtomatis() {
+    const produkId = document.getElementById("penjualan-produk").value;
+    const jumlahRaw = document.getElementById("penjualan-jumlah").value.trim();
+    const totalInput = document.getElementById("penjualan-total");
+    const hint = document.getElementById("penjualan-total-hint");
+
+    if (!produkId || jumlahRaw === "") return;
+
+    const produk = ownProdukList.find((p) => String(p.id) === String(produkId));
+    const jumlah = Number(jumlahRaw);
+    if (!produk || produk.harga == null || !Number.isFinite(jumlah) || jumlah < 1) return;
+
+    const total = Number(produk.harga) * jumlah;
+    totalInput.value = total;
+
+    if (hint) {
+      hint.textContent = `${formatRupiah(produk.harga)} x ${jumlah} = ${formatRupiah(total)}. Boleh diubah bila ada potongan harga atau ongkir.`;
+    }
+  }
+
+  document.getElementById("penjualan-produk").addEventListener("change", hitungTotalOtomatis);
+  document.getElementById("penjualan-jumlah").addEventListener("input", hitungTotalOtomatis);
 
   document.getElementById("penjualan-form").addEventListener("submit", async (e) => {
     e.preventDefault();
