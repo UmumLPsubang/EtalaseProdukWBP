@@ -319,14 +319,36 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
     return totals;
   }
 
+  const KOLOM_PRODUK_INTI = "id, nama, kategori, harga, deskripsi, image_url, shopee_link, tokopedia_link, grab_link, gofood_link, upt:upt_id (nama, whatsapp, wilayah)";
+
+  // Kolom `stok` berasal dari migrasi yang mungkin belum dijalankan di
+  // database. Kalau kolomnya belum ada, PostgREST menolak SELURUH kueri --
+  // bukan hanya kolom itu -- sehingga katalog publik ikut kosong. Karena itu
+  // kueri diulang tanpa kolom stok, supaya halaman publik tidak pernah mati
+  // hanya karena satu migrasi belum sempat dijalankan.
+  async function ambilProduk() {
+    const kueri = (kolom) => supabaseClient
+      .from("produk")
+      .select(kolom)
+      .eq("status", "aktif")
+      .order("created_at", { ascending: false });
+
+    const hasil = await kueri("id, nama, kategori, harga, deskripsi, image_url, stok, shopee_link, tokopedia_link, grab_link, gofood_link, upt:upt_id (nama, whatsapp, wilayah)");
+    if (!hasil.error) return hasil;
+
+    // 42703 = undefined_column pada PostgreSQL.
+    const kolomBelumAda =
+      hasil.error.code === "42703" || /stok/i.test(hasil.error.message || "");
+    if (!kolomBelumAda) return hasil;
+
+    console.warn("Kolom 'stok' belum ada di database; katalog dimuat tanpa keterangan stok. Jalankan docs/supabase-stok-dan-koreksi-transaksi-schema.sql.");
+    return kueri(KOLOM_PRODUK_INTI);
+  }
+
   async function loadKatalogProduk() {
     const grid = document.getElementById("productGrid");
     const [produkResult, unitsSold] = await Promise.all([
-      supabaseClient
-        .from("produk")
-        .select("id, nama, kategori, harga, deskripsi, image_url, stok, shopee_link, tokopedia_link, grab_link, gofood_link, upt:upt_id (nama, whatsapp, wilayah)")
-        .eq("status", "aktif")
-        .order("created_at", { ascending: false }),
+      ambilProduk(),
       loadUnitsSold(),
     ]);
 

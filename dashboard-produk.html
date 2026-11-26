@@ -259,6 +259,15 @@
     messageBox.classList.remove("hidden");
   }
 
+  // Kolom `stok` berasal dari migrasi yang mungkin belum dijalankan. Tanpa
+  // kolomnya, PostgREST menolak seluruh kueri -- daftar produk jadi kosong dan
+  // penyimpanan gagal total, padahal yang hilang hanya satu kolom opsional.
+  // 42703 = undefined_column pada PostgreSQL.
+  function kolomStokBelumAda(error) {
+    if (!error) return false;
+    return error.code === "42703" || /stok/i.test(error.message || "");
+  }
+
   function uploadFoto(file, uptId) {
     return ProdukBulk.uploadFoto(file, uptId);
   }
@@ -340,12 +349,24 @@
       };
       if (image_url) payload.image_url = image_url;
 
+      // Kalau kolom stok belum ada di database, simpan ulang tanpa field itu
+      // supaya pencatatan produk tetap bisa jalan.
+      const payloadTanpaStok = { ...payload };
+      delete payloadTanpaStok.stok;
+
       if (editingProdukId) {
-        const { data: updateData, error: updateError } = await supabaseClient
+        let { data: updateData, error: updateError } = await supabaseClient
           .from("produk")
           .update(payload)
           .eq("id", editingProdukId)
           .select();
+        if (kolomStokBelumAda(updateError)) {
+          ({ data: updateData, error: updateError } = await supabaseClient
+            .from("produk")
+            .update(payloadTanpaStok)
+            .eq("id", editingProdukId)
+            .select());
+        }
         if (updateError) throw updateError;
         if (!updateData || updateData.length === 0) {
           showMessage("Produk tidak ditemukan atau bukan milik Anda. Mungkin sudah dihapus.", "error");
@@ -358,11 +379,18 @@
         showMessage("Perubahan berhasil disimpan.", "success");
         exitEditMode();
       } else {
-        const { error: insertError } = await supabaseClient.from("produk").insert({
+        let { error: insertError } = await supabaseClient.from("produk").insert({
           ...payload,
           upt_id: currentUptId,
           status: "aktif",
         });
+        if (kolomStokBelumAda(insertError)) {
+          ({ error: insertError } = await supabaseClient.from("produk").insert({
+            ...payloadTanpaStok,
+            upt_id: currentUptId,
+            status: "aktif",
+          }));
+        }
         if (insertError) throw insertError;
         showMessage("Produk berhasil disimpan.", "success");
         form.reset();
@@ -412,11 +440,17 @@
 
   async function loadProdukList(uptId) {
     const container = document.getElementById("produk-list");
-    const { data, error } = await supabaseClient
+    const kueriDaftar = (kolom) => supabaseClient
       .from("produk")
-      .select("id, nama, kategori, harga, deskripsi, image_url, status, stok, shopee_link, tokopedia_link, grab_link, gofood_link")
+      .select(kolom)
       .eq("upt_id", uptId)
       .order("created_at", { ascending: false });
+
+    let { data, error } = await kueriDaftar("id, nama, kategori, harga, deskripsi, image_url, status, stok, shopee_link, tokopedia_link, grab_link, gofood_link");
+    if (kolomStokBelumAda(error)) {
+      console.warn("Kolom 'stok' belum ada di database. Jalankan docs/supabase-stok-dan-koreksi-transaksi-schema.sql.");
+      ({ data, error } = await kueriDaftar("id, nama, kategori, harga, deskripsi, image_url, status, shopee_link, tokopedia_link, grab_link, gofood_link"));
+    }
 
     if (error) {
       container.innerHTML = '<p class="text-sm text-red-500 text-center py-6">Gagal memuat daftar produk.</p>';
