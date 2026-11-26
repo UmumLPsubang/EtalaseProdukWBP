@@ -330,7 +330,7 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
   // terlaris. Map kosong berarti belum ada penjualan atau fungsinya belum ada
   // di database -- katalog tetap tampil normal tanpa lencana.
   async function ambilTerlaris() {
-    const { data, error } = await supabaseClient.rpc("produk_terlaris", { p_limit: 4 });
+    const { data, error } = await supabaseClient.rpc("produk_terlaris", { p_limit: 6 });
 
     if (error) {
       // Paling sering karena migrasinya belum dijalankan. Satu migrasi yang
