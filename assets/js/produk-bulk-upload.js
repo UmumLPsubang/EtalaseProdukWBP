@@ -19,6 +19,51 @@ window.ProdukBulk = (function () {
 
   const VALID_KATEGORI = ["Kriya", "Tekstil", "Kuliner", "Mebel", "Pertanian", "Jasa", "Lainnya"];
   const CSV_HEADER = "nama_produk,kategori,harga,deskripsi,link_shopee,link_tokopedia,link_grab,link_gofood,nama_file_gambar";
+  // Aturan domain marketplace, dipakai bersama oleh formulir manual dan
+  // unggah massal. Sebelumnya formulir manual hanya memeriksa awalan
+  // "https://" sementara database memeriksa domainnya, sehingga tautan yang
+  // ditolak baru ketahuan sebagai pesan error mentah dari Postgres.
+  //
+  // Domain pemendek resmi ikut diizinkan, karena tombol "Bagikan" di aplikasi
+  // Shopee dan Tokopedia menghasilkan tautan pendek -- itulah yang paling
+  // wajar disalin petugas. Daftarnya tetap dibatasi supaya katalog resmi
+  // tidak bisa diisi tautan ke situs sembarangan.
+  // Harus selalu sama dengan CHECK constraint di
+  // docs/supabase-marketplace-shortlink-schema.sql.
+  const MARKETPLACE = {
+    shopee: {
+      label: "Shopee",
+      pola: /^https:\/\/(([a-z0-9-]+\.)*shopee\.co\.id|([a-z0-9-]+\.)*shp\.ee)\//,
+      domain: "shopee.co.id atau shp.ee",
+    },
+    tokopedia: {
+      label: "Tokopedia",
+      pola: /^https:\/\/(([a-z0-9-]+\.)*tokopedia\.com|([a-z0-9-]+\.)*tokopedia\.link)\//,
+      domain: "tokopedia.com atau tokopedia.link",
+    },
+    grab: {
+      label: "Grab Food",
+      pola: /^https:\/\/([a-z0-9-]+\.)*grab\.com\//,
+      domain: "grab.com",
+    },
+    gofood: {
+      label: "GoFood",
+      pola: /^https:\/\/([a-z0-9-]+\.)*(gofood\.co\.id|gofood\.link)\//,
+      domain: "gofood.co.id atau gofood.link",
+    },
+  };
+
+  // Mengembalikan null bila tautan kosong atau sah, atau pesan kesalahan
+  // berbahasa Indonesia bila tidak.
+  function cekLink(jenis, url) {
+    const aturan = MARKETPLACE[jenis];
+    if (!aturan) return null;
+    const nilai = (url || "").trim();
+    if (nilai === "") return null;
+    if (aturan.pola.test(nilai)) return null;
+    return `Link ${aturan.label} harus diawali https:// dan berdomain ${aturan.domain}.`;
+  }
+
   const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
   const VALID_EXT = ["jpg", "jpeg", "png", "webp"];
 
@@ -57,24 +102,19 @@ window.ProdukBulk = (function () {
     const deskripsi = (row.deskripsi || "").trim() || null;
 
     const shopeeLink = (row.link_shopee || "").trim();
-    if (shopeeLink && !/^https:\/\/([a-z0-9-]+\.)*shopee\.co\.id\//.test(shopeeLink)) {
-      errors.push("link_shopee harus diawali https:// dan domain shopee.co.id");
-    }
-
     const tokopediaLink = (row.link_tokopedia || "").trim();
-    if (tokopediaLink && !/^https:\/\/([a-z0-9-]+\.)*tokopedia\.com\//.test(tokopediaLink)) {
-      errors.push("link_tokopedia harus diawali https:// dan domain tokopedia.com");
-    }
-
     const grabLink = (row.link_grab || "").trim();
-    if (grabLink && !/^https:\/\/([a-z0-9-]+\.)*grab\.com\//.test(grabLink)) {
-      errors.push("link_grab harus diawali https:// dan domain grab.com");
-    }
-
     const gofoodLink = (row.link_gofood || "").trim();
-    if (gofoodLink && !/^https:\/\/([a-z0-9-]+\.)*(gofood\.co\.id|gofood\.link)\//.test(gofoodLink)) {
-      errors.push("link_gofood harus diawali https:// dan domain gofood.co.id atau gofood.link");
-    }
+
+    [
+      ["shopee", "link_shopee", shopeeLink],
+      ["tokopedia", "link_tokopedia", tokopediaLink],
+      ["grab", "link_grab", grabLink],
+      ["gofood", "link_gofood", gofoodLink],
+    ].forEach(([jenis, kolom, nilai]) => {
+      const pesan = cekLink(jenis, nilai);
+      if (pesan) errors.push(`${kolom}: ${pesan}`);
+    });
 
     const fileName = (row.nama_file_gambar || "").trim();
     if (!fileName) errors.push("nama_file_gambar kosong");
@@ -200,6 +240,8 @@ window.ProdukBulk = (function () {
 
   return {
     VALID_KATEGORI,
+    MARKETPLACE,
+    cekLink,
     CSV_HEADER,
     mimeTypeForExt,
     processRow,

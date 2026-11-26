@@ -122,12 +122,12 @@
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="shopee-link">Link Shopee (opsional)</label>
-          <input id="shopee-link" type="url" placeholder="https://shopee.co.id/..."
+          <input id="shopee-link" type="url" placeholder="https://shopee.co.id/... atau https://shp.ee/..."
             class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
         </div>
         <div>
           <label class="block text-xs font-bold uppercase tracking-wide text-slate-600 mb-1.5" for="tokopedia-link">Link Tokopedia (opsional)</label>
-          <input id="tokopedia-link" type="url" placeholder="https://www.tokopedia.com/..."
+          <input id="tokopedia-link" type="url" placeholder="https://tokopedia.com/... atau https://tokopedia.link/..."
             class="w-full px-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-primary-container">
         </div>
       </div>
@@ -289,28 +289,18 @@
     const tokopediaLink = document.getElementById("tokopedia-link").value.trim();
     const grabLink = document.getElementById("grab-link").value.trim();
     const gofoodLink = document.getElementById("gofood-link").value.trim();
-    const urlPattern = /^https:\/\/.+/;
+    // Dipakai aturan yang sama persis dengan unggah massal dan dengan CHECK
+    // constraint di database. Sebelumnya formulir ini hanya memeriksa awalan
+    // "https://", sehingga tautan berdomain lain lolos di sini lalu ditolak
+    // database dengan pesan mentah yang tidak bisa dipahami petugas.
+    const pesanLink =
+      ProdukBulk.cekLink("shopee", shopeeLink) ||
+      ProdukBulk.cekLink("tokopedia", tokopediaLink) ||
+      ProdukBulk.cekLink("grab", grabLink) ||
+      ProdukBulk.cekLink("gofood", gofoodLink);
 
-    if (shopeeLink && !urlPattern.test(shopeeLink)) {
-      showMessage("Link Shopee harus diawali https://", "error");
-      submitBtn.disabled = false;
-      submitBtn.textContent = editingProdukId ? "Simpan Perubahan" : "Simpan Produk";
-      return;
-    }
-    if (tokopediaLink && !urlPattern.test(tokopediaLink)) {
-      showMessage("Link Tokopedia harus diawali https://", "error");
-      submitBtn.disabled = false;
-      submitBtn.textContent = editingProdukId ? "Simpan Perubahan" : "Simpan Produk";
-      return;
-    }
-    if (grabLink && !urlPattern.test(grabLink)) {
-      showMessage("Link Grab Food harus diawali https://", "error");
-      submitBtn.disabled = false;
-      submitBtn.textContent = editingProdukId ? "Simpan Perubahan" : "Simpan Produk";
-      return;
-    }
-    if (gofoodLink && !urlPattern.test(gofoodLink)) {
-      showMessage("Link GoFood harus diawali https://", "error");
+    if (pesanLink) {
+      showMessage(pesanLink, "error");
       submitBtn.disabled = false;
       submitBtn.textContent = editingProdukId ? "Simpan Perubahan" : "Simpan Produk";
       return;
