@@ -1,188 +1,200 @@
-# Panduan Pemasangan Domain Kustom
+# Panduan Pemasangan Domain
 
-Portal Karya WBP Jabar saat ini beralamat di `etalase-produk-wbp.vercel.app`. Dokumen ini adalah langkah demi langkah untuk menggantinya dengan domain sendiri (misalnya `namadomainanda.id`).
+**Status: SUDAH TERPASANG.** Portal beralamat di **https://www.produkwbp-pasjabar.com** sejak 26 November 2026. Domain dibeli di Hostinger, situs di-hosting Vercel.
 
-**Tidak ada downtime.** Alamat `.vercel.app` yang sekarang tetap hidup dan bisa diakses selama seluruh proses berlangsung. Domain baru baru akan menampilkan situs setelah semua langkah selesai, jadi tidak ada risiko portal mati di tengah jalan.
-
-Perkiraan waktu: 15–30 menit mengerjakan, ditambah menunggu propagasi DNS yang bisa beberapa menit sampai beberapa jam.
+Dokumen ini menyimpan dua hal: catatan pengaturan yang sedang berlaku, dan langkah lengkapnya bila suatu saat domain harus dipindahkan, diganti, atau dipasang ulang.
 
 ---
 
-## Sebelum mulai: catatan kepemilikan domain
+## Bagian 1 — Pengaturan yang berlaku sekarang
 
-Domain ini akan dibeli atas nama pribadi, sementara portalnya menampilkan logo Kementerian Imigrasi dan Pemasyarakatan serta menyebut Kanwil Jawa Barat. Dua risiko yang nyata:
+### Alamat
 
-1. Kalau domain lupa diperpanjang atau pemegang akunnya pindah tugas, portal resmi 33 UPT ikut mati — dan domain yang kedaluwarsa bisa dibeli pihak lain yang lalu memakai nama itu sambil membawa-bawa branding kementerian.
-2. Aset digital instansi yang terdaftar atas nama perorangan sulit dipertanggungjawabkan secara administratif.
+| | |
+|---|---|
+| Alamat utama | `https://www.produkwbp-pasjabar.com` |
+| Tanpa www | Dialihkan otomatis (308) ke alamat utama |
+| Alamat lama | `etalase-produk-wbp.vercel.app` — masih hidup |
 
-Tindakan minimum yang wajib dilakukan:
+Alamat ber-www dipilih sebagai alamat utama, mengikuti anjuran Vercel. Konsekuensinya: setiap alamat absolut di kode (tag Open Graph, `canonical`) **harus memakai versi ber-www**. Memakai versi tanpa www membuat perayap melewati satu pengalihan lebih dahulu.
 
-- [ ] Nyalakan **auto-renew** di registrar
-- [ ] Catat kredensial akun registrar di tempat yang kantor bisa akses, bukan hanya di satu kepala
-- [ ] Catat tanggal kedaluwarsa domain
-- [ ] Agendakan pemindahan kepemilikan ke instansi kalau portal sudah berjalan mapan
+### Tempat pengelolaan
+
+| Apa | Di mana |
+|---|---|
+| Kepemilikan domain & DNS | Hostinger (hPanel → Domains → DNS / Nameservers) |
+| Hosting situs | Vercel (Settings → Domains) |
+| Sertifikat HTTPS | Vercel, otomatis dan gratis |
+
+Nameserver **tetap di Hostinger**. Yang diarahkan ke Vercel hanya dua record DNS.
+
+### Record DNS yang terpasang di Hostinger
+
+| Type | Name | Value | TTL |
+|---|---|---|---|
+| A | `@` | alamat IP dari layar Vercel | 300 |
+| CNAME | `www` | subdomain `vercel-dns` dari layar Vercel | 300 |
+
+Nilai persisnya sengaja tidak dicatat di sini. Vercel dapat mengubahnya, dan menyalin nilai usang dari dokumen adalah penyebab kegagalan paling umum. **Selalu baca dari Vercel → Settings → Domains.**
 
 ---
 
-## Langkah 1 — Beli domainnya saja, bukan hosting
+## Bagian 2 — Catatan kepemilikan
 
-Registrar adalah tempat jual-beli nama domain: Niagahoster, Rumahweb, Domainesia, Namecheap, Cloudflare, dan sejenisnya.
+Domain terdaftar atas nama pribadi, sementara portal menampilkan logo kementerian. Tindakan minimum yang wajib dijaga:
 
-Yang dibeli **hanya nama domain**. Situsnya sudah di-hosting gratis oleh Vercel.
+- [ ] **Auto-renew menyala** di Hostinger
+- [ ] Kredensial akun Hostinger tercatat di tempat yang kantor bisa akses, bukan hanya di satu kepala
+- [ ] Tanggal kedaluwarsa domain tercatat
+- [ ] Pemindahan kepemilikan ke instansi diagendakan
 
-Saat proses pembelian, registrar hampir pasti menawarkan tambahan berikut. Sebagian besar tidak dibutuhkan:
+Bila domain kedaluwarsa, portal 33 UPT ikut mati — dan domain yang lepas bisa dibeli pihak lain yang lalu memakai nama itu sambil membawa branding kementerian.
+
+---
+
+## Bagian 3 — Langkah pemasangan (untuk pemasangan ulang di masa depan)
+
+Perkiraan waktu: 15–30 menit, ditambah menunggu propagasi DNS. **Tidak ada downtime** — alamat lama tetap hidup sepanjang proses.
+
+### Langkah 1 — Beli domainnya saja
+
+Yang dibeli hanya nama domain. Situs sudah di-hosting gratis oleh Vercel. Registrar hampir pasti menawarkan tambahan berikut; sebagian besar tidak dibutuhkan:
 
 | Tawaran | Perlu? | Alasan |
 |---|---|---|
 | Paket hosting / cPanel | Tidak | Situs sudah di-hosting Vercel |
-| Sertifikat SSL berbayar | Tidak | Vercel menerbitkan SSL gratis secara otomatis |
+| Sertifikat SSL berbayar | Tidak | Vercel menerbitkan HTTPS gratis otomatis |
 | Jasa pembuatan website | Tidak | Situsnya sudah jadi |
-| Email hosting | Opsional | Hanya kalau memang butuh email `@namadomainanda.id` |
-| Domain privacy / WHOIS protection | Opsional | Menyembunyikan data pemilik dari pencarian publik |
+| Email hosting | Opsional | Hanya bila butuh email `@domain` |
 
-Perhatikan juga harga **perpanjangan** tahun kedua, bukan hanya harga promo tahun pertama. Selisihnya sering jauh.
+Periksa harga **perpanjangan tahun kedua**, bukan hanya promo tahun pertama. Selisihnya sering jauh.
 
----
+### Langkah 2 — Daftarkan di Vercel
 
-## Langkah 2 — Daftarkan domain di Vercel
+1. Vercel → proyek portal → **Settings → Domains → Add Domain**
+2. Masukkan domainnya
+3. Biarkan **"Redirect apex domains to www"** tercentang bila ingin alamat ber-www jadi alamat utama. Bila centang dihapus, **www harus didaftarkan terpisah** pada kolom "Add Another Domain" — kalau tidak, pengunjung yang mengetik "www" akan mendapat halaman error.
+4. Biarkan **Connect to an environment → Production**. Jangan pilih "Redirect to Another Domain".
+5. Klik **Add Domain**
 
-1. Masuk ke [vercel.com](https://vercel.com) dan buka proyek portal ini
-2. Masuk ke **Settings → Domains**
-3. Klik **Add Domain**, ketik nama domain yang sudah dibeli, lalu **Add**
-4. Vercel akan menampilkan record DNS yang harus dipasang — biasanya dua baris:
-   - satu record bertipe **A** untuk domain utama (`namadomainanda.id`)
-   - satu record bertipe **CNAME** untuk versi www (`www.namadomainanda.id`)
+Status akan merah **Invalid Configuration**. Itu normal: artinya DNS-nya memang belum dipasang.
 
-> **Penting:** pakai nilai yang **persis ditampilkan di layar Vercel Anda**. Jangan menyalin alamat IP atau CNAME dari tutorial mana pun, termasuk dokumen ini — nilainya bisa berbeda antar proyek dan bisa berubah sewaktu-waktu. Menyalin angka usang adalah penyebab paling umum domain gagal tersambung.
+### Langkah 3 — Buka DNS Zone Editor di Hostinger
 
-Biarkan halaman ini terbuka; nilainya akan disalin di langkah berikutnya.
+hPanel → **Domains** → pilih domain → **DNS / Nameservers** → tab **DNS Records**.
 
----
+### Langkah 4 — Hapus record bawaan lebih dulu ⚠️
 
-## Langkah 3 — Pasang record DNS di registrar
+**Ini yang paling sering terlewat.** Hostinger otomatis membuat record yang mengarahkan domain ke hosting atau halaman parkir mereka. Bila tidak dihapus, record itu bentrok dan domain kadang menampilkan halaman Hostinger, bukan portal.
 
-DNS adalah buku alamat internet: ia memberi tahu browser, server mana yang harus dihubungi ketika seseorang mengetik nama domain Anda. Memasang record DNS berarti menulis alamat Vercel ke dalam buku alamat itu.
+Hapus atau ubah:
 
-Ada dua cara. Pilih salah satu, jangan keduanya.
+| Type | Name |
+|---|---|
+| A | `@` |
+| CNAME | `www` |
 
-### Cara A — Pasang record A dan CNAME (kontrol DNS tetap di registrar)
+**Jangan sentuh** record MX (email), TXT, atau NS.
 
-1. Di panel registrar, cari menu **DNS Management** (kadang bernama "Kelola DNS", "Zone Editor", atau "Pengaturan DNS")
-2. Tambahkan record pertama sesuai yang ditampilkan Vercel:
-   - Type: **A**
-   - Name / Host: `@` (artinya domain utama tanpa awalan)
-   - Value / Points to: alamat IP dari layar Vercel
-3. Tambahkan record kedua:
-   - Type: **CNAME**
-   - Name / Host: `www`
-   - Value / Points to: alamat dari layar Vercel
-4. Simpan
+Lebih aman **mengubah** record A yang sudah ada daripada menambah record baru. Dua record A dengan IP berbeda akan bersaing, dan domain kadang sampai ke Vercel, kadang ke Hostinger.
 
-**Kapan memilih cara ini:** kalau domain yang sama juga dipakai untuk hal lain, misalnya email kantor, dan Anda tidak ingin memindahkan seluruh pengaturannya.
+### Langkah 5 — Masukkan record dari Vercel
 
-### Cara B — Ganti nameserver ke Vercel (seluruh DNS diurus Vercel)
+Buka tiap baris domain di Vercel (klik tanda panah di label "Invalid Configuration") untuk melihat record yang dibutuhkan. **Masing-masing domain punya record sendiri** — baris www menampilkan CNAME, baris tanpa www menampilkan A. Keduanya harus dipasang.
 
-1. Di panel registrar, cari menu **Nameserver** (kadang "DNS Server" atau "Kelola Nameserver")
-2. Pilih opsi nameserver kustom, lalu isi dengan nameserver yang ditampilkan Vercel
-3. Simpan
+**Catatan praktis dari pemasangan 26 November 2026:**
 
-**Kapan memilih cara ini:** kalau domain ini hanya dipakai untuk portal dan tidak ada keperluan lain. Lebih sedikit yang bisa salah. Konsekuensinya, semua pengaturan DNS domain tersebut — termasuk kalau nanti mau memasang email — harus dikelola dari dashboard Vercel, bukan dari registrar.
+- **Pakai tombol salin** di sebelah nilai, jangan diketik ulang. Nilai CNAME Vercel mengandung string acak panjang; satu huruf salah membuatnya gagal tanpa petunjuk yang jelas.
+- **Titik di akhir nilai** (`...vercel-dns-017.com.`) adalah notasi standar DNS, bukan bagian dari alamat. Bila Hostinger menolak isian, hapus titik terakhirnya.
+- **TTL minimum Hostinger adalah 60**, maksimum 86400. Isi **300** saat memasang: bila ada yang salah, perbaikannya menyebar ulang dalam 5 menit, bukan 4 jam seperti nilai bawaan 14400.
 
-### Yang HARUS dihindari
+### Langkah 6 — Tunggu dan periksa
 
-> **Jangan memakai fitur "Web Forwarding", "URL Redirect", "Domain Forwarding", atau "Masking"** yang biasanya ditawarkan registrar sebagai cara cepat mengarahkan domain.
->
-> Itu bukan cara yang benar. Akibatnya: alamat di address bar jadi kacau atau tetap menampilkan alamat lama, HTTPS tidak jalan sehingga browser menampilkan peringatan "tidak aman", dan login UPT maupun Super Admin bisa rusak karena sistem autentikasi membaca alamat yang tidak konsisten.
->
-> Yang dipakai harus record DNS (Cara A) atau nameserver (Cara B).
+Kembali ke Vercel, klik ikon ⟳ di sebelah kanan tiap baris domain. Biasanya 5–30 menit sampai berubah jadi **Valid Configuration**. Sertifikat HTTPS menyusul otomatis setelahnya.
 
----
+Bila setelah satu jam masih merah, periksa ulang Langkah 4 — hampir selalu karena record lama yang belum terhapus.
 
-## Langkah 4 — Tunggu propagasi DNS
+### Langkah 7 — Perbarui Supabase
 
-Perubahan DNS butuh waktu menyebar ke seluruh internet. Umumnya beberapa menit, kadang sampai beberapa jam, dan pada kasus tertentu hingga 24 jam.
+**Langkah yang paling sering dilupakan, dan akibatnya paling terasa.**
 
-Cara mengeceknya: buka kembali **Vercel → Settings → Domains**. Kalau sudah benar, domain Anda ditandai **Valid Configuration**. Selama menunggu, situs di alamat lama tetap berjalan normal.
+Supabase → **Authentication → URL Configuration**:
 
-Kalau setelah beberapa jam masih belum valid, periksa ulang apakah nilai record yang dipasang sama persis dengan yang ditampilkan Vercel, termasuk ada atau tidaknya titik di akhir alamat.
+1. **Site URL** → `https://www.produkwbp-pasjabar.com`
+2. **Redirect URLs** → tambahkan `https://www.produkwbp-pasjabar.com/**`
+3. Biarkan alamat `.vercel.app` lama tetap ada selama masa transisi
 
----
+Bila dilewati: login UPT dan Super Admin bisa terlempar balik ke alamat lama, dan fitur ganti password gagal.
 
-## Langkah 5 — SSL (HTTPS) otomatis
+### Langkah 8 — Perbarui alamat absolut di kode
 
-Tidak perlu membeli sertifikat SSL. Begitu DNS valid, Vercel menerbitkan sertifikat HTTPS sendiri secara gratis dan memperpanjangnya otomatis.
+Sebagian besar kode memakai path relatif (`/monitoring`, `/dashboard`) dan ikut domain apa pun secara otomatis. Yang **tidak** otomatis adalah alamat absolut di `<head>` halaman depan:
 
-Tandanya berhasil: muncul ikon gembok di address bar, dan alamat diawali `https://`.
+- `<link rel="canonical">`
+- `og:url`
+- `og:image` dan `twitter:image`
 
----
+Keempatnya ada di `index.html` dan harus memakai alamat utama yang berlaku.
 
-## Langkah 6 — Perbarui pengaturan Supabase
+### Langkah 9 — Alihkan alamat lama
 
-**Ini langkah yang paling sering terlewat, dan akibatnya paling terasa.** Portal memakai Supabase untuk login dan penyimpanan data. Supabase menyimpan daftar alamat yang diizinkan, dan daftar itu masih berisi alamat lama.
-
-1. Masuk ke [supabase.com](https://supabase.com), buka proyek portal ini
-2. Masuk ke **Authentication → URL Configuration**
-3. Ubah **Site URL** menjadi `https://namadomainanda.id`
-4. Pada **Redirect URLs**, tambahkan `https://namadomainanda.id/**`
-5. Biarkan alamat `.vercel.app` lama tetap ada di daftar Redirect URLs selama masa transisi
-6. Simpan
-
-**Kalau langkah ini dilewati:** login UPT dan Super Admin bisa terlempar balik ke alamat `.vercel.app` lama setelah berhasil masuk, dan fitur ganti password di `/dashboard-profil` bisa gagal.
-
----
-
-## Langkah 7 — Alihkan alamat `.vercel.app` lama
-
-Setelah domain baru aktif, alamat `.vercel.app` tetap bisa diakses dan tidak bisa dimatikan. Supaya tidak ada dua alamat yang beredar di brosur dan grup WhatsApp UPT, alamat lama sebaiknya dialihkan otomatis ke domain baru.
-
-Caranya, tambahkan satu entri pada `redirects` di berkas `vercel.json`:
+Alamat `.vercel.app` tetap hidup dan tidak bisa dimatikan. Supaya tidak ada dua alamat beredar, tambahkan satu entri pada `redirects` di `vercel.json`:
 
 ```json
 {
   "source": "/(.*)",
   "has": [{ "type": "host", "value": "etalase-produk-wbp.vercel.app" }],
-  "destination": "https://namadomainanda.id/$1",
+  "destination": "https://www.produkwbp-pasjabar.com/$1",
   "permanent": true
 }
 ```
 
-Ganti `namadomainanda.id` dengan domain sebenarnya, lalu commit dan push. Vercel menerapkannya pada deploy berikutnya.
+> Catatan: per 26 November 2026 pengalihan ini **belum dipasang**. Kedua alamat masih hidup bersamaan.
 
 ---
 
-## Checklist verifikasi setelah migrasi
+## Bagian 4 — Pratinjau saat link dibagikan
 
-Kerjakan semuanya, jangan hanya membuka halaman depan:
+Supaya link yang dibagikan di WhatsApp menampilkan nama situs dan logo, bukan alamat mentah, `index.html` memuat tag Open Graph di `<head>`: `og:title`, `og:description`, `og:image`, `og:url`, ditambah padanan `twitter:` dan `<meta name="description">`.
 
-- [ ] Buka `https://namadomainanda.id` — katalog produk muncul
+Gambar pratinjaunya: `assets/img/og-cover.png`, ukuran 1200×630, sekitar 78 KB.
+
+**Dua aturan yang tidak boleh dilanggar:**
+
+1. **Alamat `og:image` harus absolut dan lengkap** (`https://...`). Perayap tidak punya konteks halaman untuk menebak alamat relatif — alamat relatif berarti pratinjaunya tidak bergambar.
+2. **Pakai alamat utama** (ber-www). Memakai versi tanpa www memaksa perayap melewati satu pengalihan lebih dahulu.
+
+### Pratinjau tidak berubah setelah diperbaiki?
+
+**WhatsApp dan Facebook menyimpan hasil pembacaan sebuah alamat selama berhari-hari.** Ini sering disalahartikan sebagai perbaikan yang gagal. Tiga cara mengatasinya:
+
+1. **Tunggu deploy selesai dulu** sebelum menguji. Bila perayap membaca halaman sebelum Vercel selesai, ia menyimpan versi lama yang masih polos.
+2. **Uji dengan alamat yang sedikit berbeda**, misalnya `https://www.produkwbp-pasjabar.com/?v=1`. Perayap menganggapnya alamat baru dan membaca ulang.
+3. **Paksa segarkan** lewat `developers.facebook.com/tools/debug` — tempel alamatnya, klik **Scrape Again**. WhatsApp memakai perayap yang sama dengan Facebook, jadi sekali scrape membersihkan keduanya.
+
+---
+
+## Bagian 5 — Daftar periksa setelah migrasi
+
+- [ ] Buka alamat utama — katalog produk muncul
 - [ ] Ikon gembok HTTPS aktif, tanpa peringatan keamanan
-- [ ] Foto produk tetap tampil (foto disimpan di Supabase Storage dengan alamat terpisah, jadi seharusnya tidak terpengaruh — tapi tetap dipastikan)
-- [ ] Buka `/monitoring` — angka KPI, grafik, dan tabel 33 UPT muncul
-- [ ] Login UPT di `/login` — berhasil masuk ke dashboard dan **tidak** terlempar ke alamat lama
-- [ ] Buka `/dashboard-produk` — daftar produk milik UPT tersebut muncul
-- [ ] Buka `/dashboard-penjualan` — riwayat transaksi dan distribusi wilayah muncul
-- [ ] Coba ganti password di `/dashboard-profil` — berhasil, lalu login ulang dengan password baru
-- [ ] Login Super Admin di `/admin-login` — berhasil, semua tab terbuka
-- [ ] Buka alamat `.vercel.app` lama — dialihkan otomatis ke domain baru
+- [ ] Buka alamat tanpa www — dialihkan ke alamat utama
+- [ ] Ikon situs (favicon) muncul di tab browser
+- [ ] Bagikan link ke diri sendiri di WhatsApp — muncul nama situs dan gambar, bukan alamat mentah
+- [ ] Foto produk tetap tampil (disimpan di Supabase Storage, alamatnya terpisah)
+- [ ] Login UPT di `/login` — masuk ke dashboard, **tidak** terlempar ke alamat lama
+- [ ] Buka `/dashboard-produk` — daftar produk muncul
+- [ ] Buka `/dashboard-penjualan` — riwayat transaksi muncul
+- [ ] Ganti password di `/dashboard-profil` — berhasil, lalu login ulang dengan password baru
+- [ ] Login Super Admin di `/admin-login` — semua tab terbuka
+- [ ] Buka `/monitoring` tanpa login (jendela penyamaran) — dialihkan ke halaman login
 
-Kalau ada satu saja yang gagal, periksa Langkah 6 lebih dulu — mayoritas masalah setelah ganti domain berasal dari pengaturan Supabase yang belum diperbarui.
-
----
-
-## Yang perlu diperbarui setelah domain aktif
-
-- **Manual book `Panduan-Dashboard-UPT-Karya-WBP-Jabar-Juara.docx` dan `.pptx`** — memuat alamat lama. Kedua berkas ini juga masih mencantumkan nomor telepon lama (022) 7208146, yang seharusnya **(021) 7214472**, jadi sekalian diperbaiki saat dibuat ulang.
-- Materi cetak, brosur, dan postingan media sosial yang sudah beredar dengan alamat lama.
-- Tautan di bio media sosial dan grup WhatsApp koordinasi UPT.
+Bila ada yang gagal, periksa Langkah 7 lebih dulu — mayoritas masalah setelah ganti domain berasal dari pengaturan Supabase yang belum diperbarui.
 
 ---
 
-## Catatan teknis untuk yang penasaran
+## Bagian 6 — Yang masih perlu diperbarui
 
-Pergantian domain ini nyaris tidak menyentuh kode, karena:
-
-- Seluruh navigasi di situs memakai path relatif (`/monitoring`, `/dashboard`, `/admin-login`), bukan alamat lengkap, jadi otomatis mengikuti domain apa pun.
-- `vercel.json` tidak mengunci domain mana pun.
-- Edge Function `reset-upt-password` memakai CORS terbuka, jadi tidak perlu disesuaikan.
-
-Satu-satunya titik di luar DNS yang benar-benar harus diubah adalah pengaturan Supabase di Langkah 6.
+- [ ] Pengalihan `.vercel.app` → domain baru di `vercel.json` (Langkah 9)
+- [ ] Manual book `Panduan-Dashboard-UPT-Karya-WBP-Jabar-Juara.docx` dan `.pptx` — masih memuat alamat `.vercel.app` dan nomor telepon lama (022) 7208146, yang seharusnya **(021) 7214472**
+- [ ] Materi cetak, brosur, dan postingan media sosial yang terlanjur memakai alamat lama
