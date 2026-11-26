@@ -829,6 +829,45 @@
   </div>
 
 <div id="panel-produk" data-panel="produk" class="space-y-6 hidden">
+  <!-- Unggah massal atas nama UPT lain: jalur cadangan untuk UPT yang
+       mengirim ZIP lewat WhatsApp/email karena tidak bisa unggah sendiri. -->
+  <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle space-y-4">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <div>
+        <h2 class="font-bold text-lg text-primary">Unggah Produk untuk UPT</h2>
+        <p class="text-xs text-on-surface-variant">Untuk UPT yang mengirim berkas lewat jalur lain dan tidak mengunggah sendiri</p>
+      </div>
+      <button id="bulk-produk-template-btn" type="button" class="text-xs font-bold text-primary-container hover:underline">Download Template CSV</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <label for="bulk-produk-upt" class="block text-xs font-bold text-slate-600 mb-1">UPT Tujuan</label>
+        <select id="bulk-produk-upt" class="w-full bg-surface-container px-3 py-2 rounded-xl border border-border-subtle text-sm font-semibold outline-none">
+          <option value="">Pilih UPT...</option>
+        </select>
+      </div>
+      <div>
+        <label for="bulk-produk-file" class="block text-xs font-bold text-slate-600 mb-1">File ZIP</label>
+        <input id="bulk-produk-file" type="file" accept=".zip,application/zip"
+          class="w-full text-sm file:mr-3 file:px-3 file:py-2 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 file:font-semibold file:text-xs hover:file:bg-slate-200">
+      </div>
+    </div>
+
+    <p class="text-xs text-slate-500">
+      ZIP berisi <code class="bg-slate-100 px-1 rounded">produk.csv</code> (nama file wajib persis itu) dan gambar-gambarnya, semua di root ZIP (tidak di dalam folder).
+      Kolom CSV: <code class="bg-slate-100 px-1 rounded">nama_produk,kategori,harga,deskripsi,link_shopee,link_tokopedia,link_grab,link_gofood,nama_file_gambar</code>.
+      Kategori: Kriya, Tekstil, Kuliner, Mebel, Pertanian, Jasa, Lainnya. Harga angka bulat tanpa titik atau koma (10000, bukan 10.000). Gambar maks 2MB, format JPG/PNG/WebP.
+      Formatnya sama persis dengan yang dipakai UPT di dashboard mereka sendiri.
+    </p>
+
+    <button id="bulk-produk-upload-btn" type="button"
+      class="px-5 py-2.5 rounded-lg bg-primary-container text-white font-bold text-sm hover:bg-primary transition disabled:opacity-50">
+      Proses Upload
+    </button>
+    <div id="bulk-produk-result" class="hidden text-sm space-y-2"></div>
+  </div>
+
   <div class="bg-white rounded-2xl p-6 shadow-sm border border-border-subtle">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
       <h2 class="font-bold text-lg text-primary">Produk Seluruh UPT</h2>
@@ -875,6 +914,8 @@
 </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="/assets/js/supabase-client.js"></script>
 <script src="/assets/js/super-admin-dashboard.js"></script>
@@ -884,7 +925,9 @@
 <script src="/assets/js/super-admin-kelola-upt.js"></script>
 <script src="/assets/js/super-admin-transaksi.js"></script>
 <script src="/assets/js/super-admin-analytics.js"></script>
+<script src="/assets/js/produk-bulk-upload.js"></script>
 <script src="/assets/js/super-admin-produk.js"></script>
+<script src="/assets/js/super-admin-bulk-produk.js"></script>
 <script>
   (async function bootstrap() {
     try {
@@ -895,7 +938,10 @@
         if (tabName === "kelola-upt") loadKelolaUptTable();
         if (tabName === "transaksi") loadTransaksiTab();
         if (tabName === "analytics") loadAnalyticsTab();
-        if (tabName === "produk") loadProdukTab();
+        if (tabName === "produk") {
+          loadProdukTab();
+          initSuperAdminBulkProduk();
+        }
       };
       initTabs();
       loadKelolaUptTable();
