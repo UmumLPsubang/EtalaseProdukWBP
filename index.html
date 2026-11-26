@@ -54,19 +54,6 @@
 </div>
 </section>
 <!-- Filter, Search, and Catalog Showcase Container -->
-<!-- Produk Terlaris. Disembunyikan sampai datanya benar-benar ada: kalau belum
-     ada penjualan sama sekali, bagian ini tidak ditampilkan daripada memajang
-     daftar kosong atau angka nol. -->
-<section class="hidden w-full max-w-7xl mx-auto px-6 lg:px-12 pt-10 flex-col gap-space-md" id="produkTerlarisSection">
-  <div class="flex items-center gap-space-sm">
-    <span class="material-symbols-outlined text-gold-text" style="font-variation-settings: &quot;FILL&quot; 1;">emoji_events</span>
-    <div>
-      <h2 class="text-headline-sm font-headline-sm text-on-surface">Produk Terlaris</h2>
-      <p class="text-body-sm font-body-sm text-on-surface-variant">Produk dengan unit penjualan terbanyak dari UPT se-Jawa Barat</p>
-    </div>
-  </div>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-lg" id="produkTerlarisGrid"></div>
-</section>
 <main class="w-full max-w-7xl mx-auto px-6 lg:px-12 py-10 flex flex-col gap-space-lg" id="katalog-produk-section">
 <!-- Search & Filter Bar -->
 <div class="bg-surface-card rounded-xl p-space-md shadow-sm flex flex-col gap-space-md">
@@ -275,9 +262,12 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
       : `<div class="w-full h-56 bg-surface-canvas flex items-center justify-center text-outline text-xs">Tidak ada foto</div>`;
 
     return `
-      <article class="product-card flex flex-col bg-surface-card rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+      <article class="product-card relative flex flex-col bg-surface-card rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
         data-nama="${escapeHtml(p.nama.toLowerCase())}" data-kategori="${escapeHtml((p.kategori || "").toLowerCase())}" data-upt="${escapeHtml((p.upt ? p.upt.nama : "").toLowerCase())}"
         data-kategori-asli="${escapeHtml(p.kategori || "")}" data-korwil="${escapeHtml(Korwil.dari(p.upt && p.upt.wilayah) || "")}" data-harga="${Number(p.harga) || 0}">
+        ${terjual > 0
+          ? `<span class="absolute top-2 left-2 z-10 inline-flex items-center gap-1 pl-1.5 pr-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed text-[11px] font-extrabold uppercase tracking-wide shadow-md"><span class="material-symbols-outlined text-[15px] leading-none" style="font-variation-settings: 'FILL' 1;">star</span>Terlaris</span>`
+          : ""}
         ${img}
         <div class="p-space-md flex flex-col gap-2 flex-1">
           <span class="text-[11px] font-bold uppercase tracking-wide text-outline">${escapeHtml(p.kategori || "Lainnya")} &middot; ${escapeHtml(p.upt ? p.upt.nama : "-")}</span>
@@ -336,36 +326,20 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
   // tabel transaksi. Fungsi itu hanya mengembalikan id produk dan jumlah unit
   // -- tidak ada nilai rupiah, tidak ada baris transaksi, tidak ada rincian
   // per UPT. Lihat docs/supabase-produk-terlaris-schema.sql.
-  async function renderProdukTerlaris() {
-    const section = document.getElementById("produkTerlarisSection");
-    const grid = document.getElementById("produkTerlarisGrid");
-    if (!section || !grid) return;
-
+  // Mengembalikan Map id produk -> jumlah unit terjual, hanya untuk produk
+  // terlaris. Map kosong berarti belum ada penjualan atau fungsinya belum ada
+  // di database -- katalog tetap tampil normal tanpa lencana.
+  async function ambilTerlaris() {
     const { data, error } = await supabaseClient.rpc("produk_terlaris", { p_limit: 4 });
 
     if (error) {
-      // Paling sering karena fungsinya belum dibuat di database. Bagian ini
-      // dibiarkan tersembunyi dan katalog utama tetap jalan -- satu migrasi
-      // yang belum dijalankan tidak boleh merusak halaman depan.
-      console.warn("Produk terlaris tidak dimuat:", error.message || error);
-      return;
+      // Paling sering karena migrasinya belum dijalankan. Satu migrasi yang
+      // tertinggal tidak boleh merusak halaman depan.
+      console.warn("Data produk terlaris tidak dimuat:", error.message || error);
+      return new Map();
     }
 
-    const produkById = new Map(allProduk.map((p) => [p.id, p]));
-    const kartu = (data || [])
-      .map((baris) => {
-        const produk = produkById.get(baris.produk_id);
-        // Produk yang sudah tidak aktif atau terhapus dilewati, supaya tidak
-        // ada kartu kosong di deretan terlaris.
-        return produk ? renderProdukCard(produk, Number(baris.total_terjual) || 0) : "";
-      })
-      .filter(Boolean);
-
-    if (kartu.length === 0) return;
-
-    grid.innerHTML = kartu.join("");
-    section.classList.remove("hidden");
-    section.classList.add("flex");
+    return new Map((data || []).map((b) => [b.produk_id, Number(b.total_terjual) || 0]));
   }
 
   async function loadKatalogProduk() {
@@ -385,13 +359,20 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
       return;
     }
 
-    // map() memberi argumen kedua berupa indeks, yang akan terbaca sebagai
-    // jumlah terjual -- jadi pemanggilannya dibungkus agar hanya produk yang
-    // dikirim.
-    grid.innerHTML = allProduk.map((p) => renderProdukCard(p)).join("");
+    const terlaris = await ambilTerlaris();
+
+    // Produk terlaris diangkat ke urutan teratas. sort() di JavaScript bersifat
+    // stabil, jadi produk tanpa penjualan tetap mempertahankan urutan semula
+    // (terbaru lebih dulu).
+    const urutTampil = [...allProduk].sort(
+      (a, b) => (terlaris.get(b.id) || 0) - (terlaris.get(a.id) || 0)
+    );
+
+    grid.innerHTML = urutTampil
+      .map((p) => renderProdukCard(p, terlaris.get(p.id) || 0))
+      .join("");
     isiPilihanFilter();
     attachFilters();
-    renderProdukTerlaris();
   }
 
   // Pilihan dropdown dibuat dari data yang benar-benar ada, bukan daftar tetap.
