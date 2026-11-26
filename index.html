@@ -101,6 +101,8 @@
 <div class="grid grid-cols-1 md:grid-cols-3 gap-space-lg" id="productGrid">
   <p class="col-span-full text-center text-outline py-12">Memuat produk...</p>
 </div>
+<!-- Navigasi halaman katalog. Dikosongkan bila produk muat dalam satu halaman. -->
+<nav aria-label="Navigasi halaman katalog" class="hidden flex-wrap items-center justify-center gap-2 pt-2" id="paginasi"></nav>
 <!-- Empty State for Search (Hidden by default) -->
 <div class="hidden flex-col items-center justify-center p-12 bg-surface-card rounded-xl text-center" id="noResultsState">
 <span class="material-symbols-outlined text-headline-xl text-outline mb-2">manage_search</span>
@@ -108,7 +110,7 @@
 <p class="text-body-md font-body-md text-on-surface-variant max-w-md mt-1">
         Kata kunci yang Anda cari belum tersedia. Silakan hubungi Humas Lapas Subang untuk konsultasi pesanan khusus (custom order).
       </p>
-<button class="mt-4 px-4 py-2 bg-primary text-on-primary rounded-lg text-label-md font-label-md" onclick="resetFilters()">
+<button class="mt-4 px-4 py-2 bg-primary text-on-primary rounded-lg text-label-md font-label-md" id="resetDariEmptyState" type="button">
         Tampilkan Semua Produk
       </button>
 </div>
@@ -163,6 +165,11 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
   }
 
   let allProduk = [];
+  // Urutan tampil setelah produk terlaris diangkat ke atas, dan peta jumlah
+  // terjual untuk lencana. Keduanya dipakai ulang setiap kali halaman katalog
+  // digambar ulang, jadi disimpan agar tidak perlu diambil berulang kali.
+  let produkTerurut = [];
+  let terlarisByProduk = new Map();
 
   function waLink(produk) {
     const nomor = produk.upt && produk.upt.whatsapp;
@@ -303,20 +310,18 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
       return;
     }
 
-    const terlaris = await ambilTerlaris();
+    terlarisByProduk = await ambilTerlaris();
 
     // Produk terlaris diangkat ke urutan teratas. sort() di JavaScript bersifat
     // stabil, jadi produk tanpa penjualan tetap mempertahankan urutan semula
     // (terbaru lebih dulu).
-    const urutTampil = [...allProduk].sort(
-      (a, b) => (terlaris.get(b.id) || 0) - (terlaris.get(a.id) || 0)
+    produkTerurut = [...allProduk].sort(
+      (a, b) => (terlarisByProduk.get(b.id) || 0) - (terlarisByProduk.get(a.id) || 0)
     );
 
-    grid.innerHTML = urutTampil
-      .map((p) => renderProdukCard(p, terlaris.get(p.id) || 0))
-      .join("");
     isiPilihanFilter();
     attachFilters();
+    renderHalaman();
   }
 
   // Pilihan dropdown dibuat dari data yang benar-benar ada, bukan daftar tetap.
@@ -352,75 +357,194 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
     });
   }
 
-  function attachFilters() {
-    const searchInput = document.getElementById("searchInput");
-    const kategoriSelect = document.getElementById("filterKategori");
-    const korwilSelect = document.getElementById("filterKorwil");
-    const hargaMinInput = document.getElementById("filterHargaMin");
-    const hargaMaksInput = document.getElementById("filterHargaMaks");
-    const resetBtn = document.getElementById("filterReset");
+  const PER_HALAMAN = 18;
+  let halamanSaatIni = 1;
+
+  // Nilai filter dibaca dari kontrol lalu diterapkan pada DATA, bukan dengan
+  // menyembunyikan kartu yang sudah tergambar. Dengan paginasi, penyaringan
+  // berbasis DOM akan salah: ia hanya menyaring 18 kartu yang kebetulan sedang
+  // tampil, bukan seluruh katalog.
+  function bacaFilter() {
+    const nilai = (id) => {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : "";
+    };
+    const minRaw = nilai("filterHargaMin");
+    const maksRaw = nilai("filterHargaMaks");
+    return {
+      query: nilai("searchInput").toLowerCase(),
+      kategori: nilai("filterKategori"),
+      korwil: nilai("filterKorwil"),
+      minRaw,
+      maksRaw,
+      // Kotak kosong berarti "tanpa batas", bukan nol.
+      hargaMin: minRaw === "" ? null : Number(minRaw),
+      hargaMaks: maksRaw === "" ? null : Number(maksRaw),
+    };
+  }
+
+  function adaFilterAktif(f) {
+    return f.query !== "" || f.kategori !== "" || f.korwil !== "" || f.minRaw !== "" || f.maksRaw !== "";
+  }
+
+  function produkTersaring(f) {
+    return produkTerurut.filter((p) => {
+      const haystack = (
+        p.nama + " " + (p.kategori || "") + " " + (p.upt ? p.upt.nama : "")
+      ).toLowerCase();
+      const harga = Number(p.harga) || 0;
+
+      return (
+        haystack.includes(f.query) &&
+        (f.kategori === "" || (p.kategori || "") === f.kategori) &&
+        (f.korwil === "" || Korwil.dari(p.upt && p.upt.wilayah) === f.korwil) &&
+        (f.hargaMin === null || Number.isNaN(f.hargaMin) || harga >= f.hargaMin) &&
+        (f.hargaMaks === null || Number.isNaN(f.hargaMaks) || harga <= f.hargaMaks)
+      );
+    });
+  }
+
+  function tombolHalaman(nomor, label, opts) {
+    const o = opts || {};
+    const dasar = "min-w-[40px] h-10 px-3 rounded-lg text-label-lg font-label-lg transition-all inline-flex items-center justify-center";
+    if (o.nonaktif) {
+      return `<span class="${dasar} text-outline cursor-default">${label}</span>`;
+    }
+    const gaya = o.aktif
+      ? "bg-primary text-on-primary font-bold"
+      : "bg-surface-card text-on-surface hover:bg-surface-container border border-border-subtle";
+    const current = o.aktif ? ` aria-current="page"` : "";
+    return `<button type="button" class="${dasar} ${gaya}" data-halaman="${nomor}"${current}>${label}</button>`;
+  }
+
+  // Maksimal 7 slot nomor dengan elipsis, supaya baris navigasi tidak melebar
+  // tak terkendali ketika produknya sudah ratusan.
+  function nomorHalamanTampil(total, kini) {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    if (kini <= 4) return [1, 2, 3, 4, 5, "...", total];
+    if (kini >= total - 3) return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+    return [1, "...", kini - 1, kini, kini + 1, "...", total];
+  }
+
+  function renderPaginasi(totalHalaman) {
+    const nav = document.getElementById("paginasi");
+    if (!nav) return;
+
+    if (totalHalaman <= 1) {
+      nav.innerHTML = "";
+      nav.classList.add("hidden");
+      nav.classList.remove("flex");
+      return;
+    }
+
+    const bagian = [
+      tombolHalaman(halamanSaatIni - 1, "Sebelumnya", { nonaktif: halamanSaatIni === 1 }),
+    ];
+    nomorHalamanTampil(totalHalaman, halamanSaatIni).forEach((n) => {
+      bagian.push(
+        n === "..."
+          ? `<span class="px-1 text-outline">&hellip;</span>`
+          : tombolHalaman(n, String(n), { aktif: n === halamanSaatIni })
+      );
+    });
+    bagian.push(
+      tombolHalaman(halamanSaatIni + 1, "Berikutnya", { nonaktif: halamanSaatIni === totalHalaman })
+    );
+
+    nav.innerHTML = bagian.join("");
+    nav.classList.remove("hidden");
+    nav.classList.add("flex");
+
+    nav.querySelectorAll("button[data-halaman]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        halamanSaatIni = Number(btn.dataset.halaman);
+        renderHalaman();
+        // Tanpa ini, pengunjung yang menekan "Berikutnya" di dasar halaman akan
+        // mendarat di tengah daftar baru tanpa sadar posisinya berubah.
+        const anchor = document.getElementById("katalog-produk-section");
+        if (anchor) anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }
+
+  function renderHalaman() {
+    const grid = document.getElementById("productGrid");
     const noResultsState = document.getElementById("noResultsState");
     const summary = document.getElementById("filterSummary");
 
-    function terapkanFilter() {
-      const query = searchInput ? searchInput.value.trim().toLowerCase() : "";
-      const kategori = kategoriSelect ? kategoriSelect.value : "";
-      const korwil = korwilSelect ? korwilSelect.value : "";
+    const f = bacaFilter();
+    const hasil = produkTersaring(f);
+    const totalHalaman = Math.max(1, Math.ceil(hasil.length / PER_HALAMAN));
 
-      // Kotak kosong berarti "tanpa batas", bukan nol. parseFloat("") adalah
-      // NaN, jadi batasnya dijadikan null secara eksplisit.
-      const minRaw = hargaMinInput ? hargaMinInput.value.trim() : "";
-      const maksRaw = hargaMaksInput ? hargaMaksInput.value.trim() : "";
-      const hargaMin = minRaw === "" ? null : Number(minRaw);
-      const hargaMaks = maksRaw === "" ? null : Number(maksRaw);
+    // Jumlah halaman menyusut saat filter dipersempit, jadi posisinya dijepit
+    // agar tidak tertinggal di halaman yang sudah tidak ada.
+    if (halamanSaatIni > totalHalaman) halamanSaatIni = totalHalaman;
+    if (halamanSaatIni < 1) halamanSaatIni = 1;
 
-      const cards = document.querySelectorAll(".product-card");
-      let visibleCount = 0;
+    const mulai = (halamanSaatIni - 1) * PER_HALAMAN;
+    const potongan = hasil.slice(mulai, mulai + PER_HALAMAN);
 
-      cards.forEach((card) => {
-        const haystack = card.dataset.nama + " " + card.dataset.kategori + " " + card.dataset.upt;
-        const harga = Number(card.dataset.harga) || 0;
+    grid.innerHTML = potongan
+      .map((p) => renderProdukCard(p, terlarisByProduk.get(p.id) || 0))
+      .join("");
 
-        const cocok =
-          haystack.includes(query) &&
-          (kategori === "" || card.dataset.kategoriAsli === kategori) &&
-          (korwil === "" || card.dataset.korwil === korwil) &&
-          (hargaMin === null || Number.isNaN(hargaMin) || harga >= hargaMin) &&
-          (hargaMaks === null || Number.isNaN(hargaMaks) || harga <= hargaMaks);
+    if (noResultsState) {
+      noResultsState.classList.toggle("hidden", hasil.length !== 0);
+      noResultsState.classList.toggle("flex", hasil.length === 0);
+    }
 
-        card.style.display = cocok ? "" : "none";
-        if (cocok) visibleCount++;
-      });
-
-      if (noResultsState) {
-        noResultsState.classList.toggle("hidden", visibleCount !== 0);
-        noResultsState.classList.toggle("flex", visibleCount === 0);
-      }
-
-      if (summary) {
-        const adaFilter = query !== "" || kategori !== "" || korwil !== "" || minRaw !== "" || maksRaw !== "";
-        summary.textContent = adaFilter
-          ? `Menampilkan ${visibleCount} dari ${allProduk.length} produk.`
+    if (summary) {
+      if (hasil.length === 0) {
+        summary.textContent = "";
+      } else if (totalHalaman > 1) {
+        const sampai = Math.min(mulai + PER_HALAMAN, hasil.length);
+        const ekor = adaFilterAktif(f)
+          ? ` hasil penyaringan, dari total ${allProduk.length} produk.`
+          : " produk.";
+        summary.textContent = `Menampilkan produk ${mulai + 1}\u2013${sampai} dari ${hasil.length}` + ekor;
+      } else {
+        summary.textContent = adaFilterAktif(f)
+          ? `Menampilkan ${hasil.length} dari ${allProduk.length} produk.`
           : "";
       }
     }
 
-    if (searchInput) searchInput.addEventListener("input", terapkanFilter);
-    if (kategoriSelect) kategoriSelect.addEventListener("change", terapkanFilter);
-    if (korwilSelect) korwilSelect.addEventListener("change", terapkanFilter);
-    if (hargaMinInput) hargaMinInput.addEventListener("input", terapkanFilter);
-    if (hargaMaksInput) hargaMaksInput.addEventListener("input", terapkanFilter);
+    renderPaginasi(totalHalaman);
+  }
 
-    if (resetBtn) {
-      resetBtn.addEventListener("click", () => {
-        if (searchInput) searchInput.value = "";
-        if (kategoriSelect) kategoriSelect.value = "";
-        if (korwilSelect) korwilSelect.value = "";
-        if (hargaMinInput) hargaMinInput.value = "";
-        if (hargaMaksInput) hargaMaksInput.value = "";
-        terapkanFilter();
+  function attachFilters() {
+    const kontrol = ["searchInput", "filterKategori", "filterKorwil", "filterHargaMin", "filterHargaMaks"];
+    const peristiwa = { filterKategori: "change", filterKorwil: "change" };
+
+    kontrol.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener(peristiwa[id] || "input", () => {
+        // Setiap perubahan filter kembali ke halaman 1. Tanpa ini, pengunjung
+        // yang sedang di halaman 3 lalu menyaring bisa mendarat di halaman
+        // yang sudah tidak punya isi.
+        halamanSaatIni = 1;
+        renderHalaman();
       });
+    });
+
+    function resetSemuaFilter() {
+      kontrol.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+      });
+      halamanSaatIni = 1;
+      renderHalaman();
     }
+
+    const resetBtn = document.getElementById("filterReset");
+    if (resetBtn) resetBtn.addEventListener("click", resetSemuaFilter);
+
+    // Tombol pada tampilan "Produk tidak ditemukan". Sebelumnya memanggil
+    // resetFilters() yang tidak pernah didefinisikan, sehingga tidak melakukan
+    // apa pun saat diklik.
+    const resetEmpty = document.getElementById("resetDariEmptyState");
+    if (resetEmpty) resetEmpty.addEventListener("click", resetSemuaFilter);
   }
 
   loadKatalogProduk();
