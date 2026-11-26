@@ -76,6 +76,36 @@
 <div class="flex items-center gap-space-sm flex-wrap sm:flex-nowrap">
 </div>
 </div>
+<!-- Filter: kategori, korwil, rentang harga -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-sm pt-space-sm border-t border-border-subtle">
+  <div class="flex flex-col gap-1">
+    <label class="text-label-md font-label-md text-on-surface-variant" for="filterKategori">Jenis Produk</label>
+    <select class="h-11 px-3 bg-surface-canvas rounded-lg text-body-md font-body-md text-on-surface focus:outline-none focus:bg-surface-card transition-all" id="filterKategori">
+      <option value="">Semua Jenis</option>
+    </select>
+  </div>
+  <div class="flex flex-col gap-1">
+    <label class="text-label-md font-label-md text-on-surface-variant" for="filterKorwil">Wilayah Koordinasi</label>
+    <select class="h-11 px-3 bg-surface-canvas rounded-lg text-body-md font-body-md text-on-surface focus:outline-none focus:bg-surface-card transition-all" id="filterKorwil">
+      <option value="">Semua Wilayah</option>
+    </select>
+  </div>
+  <div class="flex flex-col gap-1">
+    <label class="text-label-md font-label-md text-on-surface-variant" for="filterHargaMin">Rentang Harga (Rp)</label>
+    <div class="flex items-center gap-2">
+      <input class="h-11 w-full px-3 bg-surface-canvas rounded-lg text-body-md font-body-md text-on-surface placeholder:text-outline focus:outline-none focus:bg-surface-card transition-all" id="filterHargaMin" inputmode="numeric" min="0" placeholder="Min" type="number">
+      <span class="text-outline shrink-0">&ndash;</span>
+      <input class="h-11 w-full px-3 bg-surface-canvas rounded-lg text-body-md font-body-md text-on-surface placeholder:text-outline focus:outline-none focus:bg-surface-card transition-all" id="filterHargaMaks" inputmode="numeric" min="0" placeholder="Maks" type="number">
+    </div>
+  </div>
+  <div class="flex flex-col gap-1">
+    <span class="text-label-md font-label-md text-on-surface-variant">&nbsp;</span>
+    <button class="h-11 px-4 rounded-lg bg-surface-canvas text-on-surface-variant font-title-md text-title-md hover:bg-surface-container transition-all flex items-center justify-center gap-2" id="filterReset" type="button">
+      <span class="material-symbols-outlined text-[18px]">filter_alt_off</span>Reset Filter
+    </button>
+  </div>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant" id="filterSummary"></p>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-space-lg" id="productGrid">
   <p class="col-span-full text-center text-outline py-12">Memuat produk...</p>
@@ -185,6 +215,7 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="/assets/js/supabase-client.js"></script>
+<script src="/assets/js/korwil.js"></script>
 <script>
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, (c) => ({
@@ -239,7 +270,8 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
 
     return `
       <article class="product-card flex flex-col bg-surface-card rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-        data-nama="${escapeHtml(p.nama.toLowerCase())}" data-kategori="${escapeHtml((p.kategori || "").toLowerCase())}" data-upt="${escapeHtml((p.upt ? p.upt.nama : "").toLowerCase())}">
+        data-nama="${escapeHtml(p.nama.toLowerCase())}" data-kategori="${escapeHtml((p.kategori || "").toLowerCase())}" data-upt="${escapeHtml((p.upt ? p.upt.nama : "").toLowerCase())}"
+        data-kategori-asli="${escapeHtml(p.kategori || "")}" data-korwil="${escapeHtml(Korwil.dari(p.upt && p.upt.wilayah) || "")}" data-harga="${Number(p.harga) || 0}">
         ${img}
         <div class="p-space-md flex flex-col gap-2 flex-1">
           <span class="text-[11px] font-bold uppercase tracking-wide text-outline">${escapeHtml(p.kategori || "Lainnya")} &middot; ${escapeHtml(p.upt ? p.upt.nama : "-")}</span>
@@ -282,7 +314,7 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
     const [produkResult, unitsSold] = await Promise.all([
       supabaseClient
         .from("produk")
-        .select("id, nama, kategori, harga, deskripsi, image_url, shopee_link, tokopedia_link, grab_link, gofood_link, upt:upt_id (nama, whatsapp)")
+        .select("id, nama, kategori, harga, deskripsi, image_url, shopee_link, tokopedia_link, grab_link, gofood_link, upt:upt_id (nama, whatsapp, wilayah)")
         .eq("status", "aktif")
         .order("created_at", { ascending: false }),
       loadUnitsSold(),
@@ -304,31 +336,112 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
     }
 
     grid.innerHTML = allProduk.map(renderProdukCard).join("");
-    attachSearchFilter();
+    isiPilihanFilter();
+    attachFilters();
   }
 
-  function attachSearchFilter() {
-    const searchInput = document.getElementById("searchInput");
-    const noResultsState = document.getElementById("noResultsState");
-    if (!searchInput) return;
+  // Pilihan dropdown dibuat dari data yang benar-benar ada, bukan daftar tetap.
+  // Dengan begitu pengunjung tidak pernah memilih kategori atau wilayah yang
+  // hasilnya pasti kosong.
+  function isiPilihanFilter() {
+    const kategoriSelect = document.getElementById("filterKategori");
+    const korwilSelect = document.getElementById("filterKorwil");
+    if (!kategoriSelect || !korwilSelect) return;
 
-    searchInput.addEventListener("input", () => {
-      const query = searchInput.value.trim().toLowerCase();
+    const kategoriAda = new Set();
+    const korwilAda = new Set();
+    allProduk.forEach((p) => {
+      if (p.kategori) kategoriAda.add(p.kategori);
+      const k = Korwil.dari(p.upt && p.upt.wilayah);
+      if (k) korwilAda.add(k);
+    });
+
+    Array.from(kategoriAda).sort().forEach((kategori) => {
+      const opt = document.createElement("option");
+      opt.value = kategori;
+      opt.textContent = kategori;
+      kategoriSelect.appendChild(opt);
+    });
+
+    // Urutan korwil mengikuti Korwil.DAFTAR, bukan urutan abjad, supaya sama
+    // dengan urutan yang dipakai Kanwil.
+    Korwil.DAFTAR.filter((k) => korwilAda.has(k)).forEach((korwil) => {
+      const opt = document.createElement("option");
+      opt.value = korwil;
+      opt.textContent = korwil;
+      korwilSelect.appendChild(opt);
+    });
+  }
+
+  function attachFilters() {
+    const searchInput = document.getElementById("searchInput");
+    const kategoriSelect = document.getElementById("filterKategori");
+    const korwilSelect = document.getElementById("filterKorwil");
+    const hargaMinInput = document.getElementById("filterHargaMin");
+    const hargaMaksInput = document.getElementById("filterHargaMaks");
+    const resetBtn = document.getElementById("filterReset");
+    const noResultsState = document.getElementById("noResultsState");
+    const summary = document.getElementById("filterSummary");
+
+    function terapkanFilter() {
+      const query = searchInput ? searchInput.value.trim().toLowerCase() : "";
+      const kategori = kategoriSelect ? kategoriSelect.value : "";
+      const korwil = korwilSelect ? korwilSelect.value : "";
+
+      // Kotak kosong berarti "tanpa batas", bukan nol. parseFloat("") adalah
+      // NaN, jadi batasnya dijadikan null secara eksplisit.
+      const minRaw = hargaMinInput ? hargaMinInput.value.trim() : "";
+      const maksRaw = hargaMaksInput ? hargaMaksInput.value.trim() : "";
+      const hargaMin = minRaw === "" ? null : Number(minRaw);
+      const hargaMaks = maksRaw === "" ? null : Number(maksRaw);
+
       const cards = document.querySelectorAll(".product-card");
       let visibleCount = 0;
 
       cards.forEach((card) => {
         const haystack = card.dataset.nama + " " + card.dataset.kategori + " " + card.dataset.upt;
-        const match = haystack.includes(query);
-        card.style.display = match ? "" : "none";
-        if (match) visibleCount++;
+        const harga = Number(card.dataset.harga) || 0;
+
+        const cocok =
+          haystack.includes(query) &&
+          (kategori === "" || card.dataset.kategoriAsli === kategori) &&
+          (korwil === "" || card.dataset.korwil === korwil) &&
+          (hargaMin === null || Number.isNaN(hargaMin) || harga >= hargaMin) &&
+          (hargaMaks === null || Number.isNaN(hargaMaks) || harga <= hargaMaks);
+
+        card.style.display = cocok ? "" : "none";
+        if (cocok) visibleCount++;
       });
 
       if (noResultsState) {
         noResultsState.classList.toggle("hidden", visibleCount !== 0);
         noResultsState.classList.toggle("flex", visibleCount === 0);
       }
-    });
+
+      if (summary) {
+        const adaFilter = query !== "" || kategori !== "" || korwil !== "" || minRaw !== "" || maksRaw !== "";
+        summary.textContent = adaFilter
+          ? `Menampilkan ${visibleCount} dari ${allProduk.length} produk.`
+          : "";
+      }
+    }
+
+    if (searchInput) searchInput.addEventListener("input", terapkanFilter);
+    if (kategoriSelect) kategoriSelect.addEventListener("change", terapkanFilter);
+    if (korwilSelect) korwilSelect.addEventListener("change", terapkanFilter);
+    if (hargaMinInput) hargaMinInput.addEventListener("input", terapkanFilter);
+    if (hargaMaksInput) hargaMaksInput.addEventListener("input", terapkanFilter);
+
+    if (resetBtn) {
+      resetBtn.addEventListener("click", () => {
+        if (searchInput) searchInput.value = "";
+        if (kategoriSelect) kategoriSelect.value = "";
+        if (korwilSelect) korwilSelect.value = "";
+        if (hargaMinInput) hargaMinInput.value = "";
+        if (hargaMaksInput) hargaMaksInput.value = "";
+        terapkanFilter();
+      });
+    }
   }
 
   loadKatalogProduk();
