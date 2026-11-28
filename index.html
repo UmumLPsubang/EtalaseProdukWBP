@@ -137,9 +137,9 @@ html.js-anim [data-reveal].tampil {
     </select>
   </div>
   <div class="flex flex-col gap-1">
-    <label class="text-label-md font-label-md text-on-surface-variant" for="filterKorwil">Wilayah Koordinasi</label>
-    <select class="h-11 px-3 bg-surface-canvas rounded-lg text-body-md font-body-md text-on-surface focus:outline-none focus:bg-surface-card transition-all" id="filterKorwil">
-      <option value="">Semua Wilayah</option>
+    <label class="text-label-md font-label-md text-on-surface-variant" for="filterUpt">Lapas / Rutan</label>
+    <select class="h-11 px-3 bg-surface-canvas rounded-lg text-body-md font-body-md text-on-surface focus:outline-none focus:bg-surface-card transition-all" id="filterUpt">
+      <option value="">Semua Lapas &amp; Rutan</option>
     </select>
   </div>
   <div class="flex flex-col gap-1">
@@ -292,7 +292,7 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
     return `
       <article class="product-card relative flex flex-col bg-surface-card rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"${kartuPertamaKali ? " data-reveal" : ""}
         data-nama="${escapeHtml(p.nama.toLowerCase())}" data-kategori="${escapeHtml((p.kategori || "").toLowerCase())}" data-upt="${escapeHtml((p.upt ? p.upt.nama : "").toLowerCase())}"
-        data-kategori-asli="${escapeHtml(p.kategori || "")}" data-korwil="${escapeHtml(Korwil.dari(p.upt && p.upt.wilayah) || "")}" data-harga="${Number(p.harga) || 0}" data-harga-maks="${p.harga_maks == null ? "" : Number(p.harga_maks)}">
+        data-kategori-asli="${escapeHtml(p.kategori || "")}" data-upt-nama="${escapeHtml(p.upt ? p.upt.nama : "")}" data-harga="${Number(p.harga) || 0}" data-harga-maks="${p.harga_maks == null ? "" : Number(p.harga_maks)}">
         ${terjual > 0
           ? `<span class="absolute top-2 left-2 z-10 inline-flex items-center gap-1 pl-1.5 pr-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed text-[11px] font-extrabold uppercase tracking-wide shadow-md"><span class="material-symbols-outlined text-[15px] leading-none" style="font-variation-settings: 'FILL' 1;">star</span>Terlaris</span>`
           : ""}
@@ -407,15 +407,20 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
   // hasilnya pasti kosong.
   function isiPilihanFilter() {
     const kategoriSelect = document.getElementById("filterKategori");
-    const korwilSelect = document.getElementById("filterKorwil");
-    if (!kategoriSelect || !korwilSelect) return;
+    const uptSelect = document.getElementById("filterUpt");
+    if (!kategoriSelect || !uptSelect) return;
 
     const kategoriAda = new Set();
-    const korwilAda = new Set();
+    // UPT dikelompokkan per korwil supaya daftar 33 baris tetap mudah
+    // ditelusuri: pengunjung mencari daerahnya dulu, baru UPT-nya.
+    const uptPerKorwil = new Map();
     allProduk.forEach((p) => {
       if (p.kategori) kategoriAda.add(p.kategori);
-      const k = Korwil.dari(p.upt && p.upt.wilayah);
-      if (k) korwilAda.add(k);
+      const nama = p.upt && p.upt.nama;
+      if (!nama) return;
+      const k = Korwil.dari(p.upt.wilayah) || "Wilayah lain";
+      if (!uptPerKorwil.has(k)) uptPerKorwil.set(k, new Set());
+      uptPerKorwil.get(k).add(nama);
     });
 
     Array.from(kategoriAda).sort().forEach((kategori) => {
@@ -425,13 +430,22 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
       kategoriSelect.appendChild(opt);
     });
 
-    // Urutan korwil mengikuti Korwil.DAFTAR, bukan urutan abjad, supaya sama
-    // dengan urutan yang dipakai Kanwil.
-    Korwil.DAFTAR.filter((k) => korwilAda.has(k)).forEach((korwil) => {
-      const opt = document.createElement("option");
-      opt.value = korwil;
-      opt.textContent = korwil;
-      korwilSelect.appendChild(opt);
+    // Urutan korwil mengikuti Korwil.DAFTAR, bukan abjad, supaya sama dengan
+    // urutan yang dipakai Kanwil. "Wilayah lain" ditaruh paling akhir -- itu
+    // penampung bila ada UPT yang nilai wilayahnya belum dikenali.
+    const urutanKorwil = Korwil.DAFTAR.filter((k) => uptPerKorwil.has(k));
+    if (uptPerKorwil.has("Wilayah lain")) urutanKorwil.push("Wilayah lain");
+
+    urutanKorwil.forEach((korwil) => {
+      const grup = document.createElement("optgroup");
+      grup.label = korwil;
+      Array.from(uptPerKorwil.get(korwil)).sort().forEach((nama) => {
+        const opt = document.createElement("option");
+        opt.value = nama;
+        opt.textContent = nama;
+        grup.appendChild(opt);
+      });
+      uptSelect.appendChild(grup);
     });
   }
 
@@ -476,7 +490,7 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
     return {
       query: nilai("searchInput").toLowerCase(),
       kategori: nilai("filterKategori"),
-      korwil: nilai("filterKorwil"),
+      upt: nilai("filterUpt"),
       minRaw,
       maksRaw,
       // Kotak kosong berarti "tanpa batas", bukan nol.
@@ -486,7 +500,7 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
   }
 
   function adaFilterAktif(f) {
-    return f.query !== "" || f.kategori !== "" || f.korwil !== "" || f.minRaw !== "" || f.maksRaw !== "";
+    return f.query !== "" || f.kategori !== "" || f.upt !== "" || f.minRaw !== "" || f.maksRaw !== "";
   }
 
   function produkTersaring(f) {
@@ -506,7 +520,7 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
       return (
         haystack.includes(f.query) &&
         (f.kategori === "" || (p.kategori || "") === f.kategori) &&
-        (f.korwil === "" || Korwil.dari(p.upt && p.upt.wilayah) === f.korwil) &&
+        (f.upt === "" || (p.upt && p.upt.nama) === f.upt) &&
         (cariMaks === null || batasBawah <= cariMaks) &&
         (cariMin === null || batasAtas >= cariMin)
       );
@@ -627,8 +641,8 @@ Divisi Pemasyarakatan Kanwil Kemenimipas Jawa Barat mengoordinasikan 33 bengkel 
   }
 
   function attachFilters() {
-    const kontrol = ["searchInput", "filterKategori", "filterKorwil", "filterHargaMin", "filterHargaMaks"];
-    const peristiwa = { filterKategori: "change", filterKorwil: "change" };
+    const kontrol = ["searchInput", "filterKategori", "filterUpt", "filterHargaMin", "filterHargaMaks"];
+    const peristiwa = { filterKategori: "change", filterUpt: "change" };
 
     kontrol.forEach((id) => {
       const el = document.getElementById(id);
