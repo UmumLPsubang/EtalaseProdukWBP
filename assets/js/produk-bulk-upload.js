@@ -18,7 +18,7 @@ window.ProdukBulk = (function () {
   "use strict";
 
   const VALID_KATEGORI = ["Kriya", "Tekstil", "Kuliner", "Mebel", "Pertanian", "Jasa", "Lainnya"];
-  const CSV_HEADER = "nama_produk,kategori,harga,deskripsi,link_shopee,link_tokopedia,link_grab,link_gofood,nama_file_gambar";
+  const CSV_HEADER = "nama_produk,kategori,harga,harga_maks,deskripsi,link_shopee,link_tokopedia,link_grab,link_gofood,nama_file_gambar";
   // Aturan domain marketplace, dipakai bersama oleh formulir manual dan
   // unggah massal. Sebelumnya formulir manual hanya memeriksa awalan
   // "https://" sementara database memeriksa domainnya, sehingga tautan yang
@@ -99,6 +99,21 @@ window.ProdukBulk = (function () {
     if (!/^\d+$/.test(hargaRaw)) errors.push("harga harus angka bulat tanpa titik/koma, mis. 10000");
     const harga = Number(hargaRaw);
 
+    // Kolom opsional. Diisi hanya bila harganya berentang karena ukuran atau
+    // tingkat kerumitan berbeda; dikosongkan berarti harga tunggal.
+    const hargaMaksRaw = (row.harga_maks || "").trim();
+    let hargaMaks = null;
+    if (hargaMaksRaw !== "") {
+      if (!/^\d+$/.test(hargaMaksRaw)) {
+        errors.push("harga_maks harus angka bulat tanpa titik/koma, atau dikosongkan");
+      } else {
+        hargaMaks = Number(hargaMaksRaw);
+        if (hargaMaks <= harga) {
+          errors.push("harga_maks harus lebih besar dari harga");
+        }
+      }
+    }
+
     const deskripsi = (row.deskripsi || "").trim() || null;
 
     const shopeeLink = (row.link_shopee || "").trim();
@@ -146,6 +161,7 @@ window.ProdukBulk = (function () {
       nama,
       kategori,
       harga,
+      harga_maks: hargaMaks,
       deskripsi,
       shopee_link: shopeeLink || null,
       tokopedia_link: tokopediaLink || null,
@@ -216,6 +232,16 @@ window.ProdukBulk = (function () {
     return uploadFoto(file, uptId);
   }
 
+  // Satu tempat untuk menampilkan harga, supaya katalog publik, daftar produk
+  // UPT, dan tab Produk Super Admin tidak berbeda format.
+  function formatHarga(harga, hargaMaks) {
+    const rupiah = (n) => "Rp " + Number(n).toLocaleString("id-ID");
+    if (harga == null) return "-";
+    return hargaMaks == null || Number(hargaMaks) <= Number(harga)
+      ? rupiah(harga)
+      : `${rupiah(harga)} \u2013 ${rupiah(hargaMaks)}`;
+  }
+
   function resultHtml(insertedCount, failedRows) {
     let html = `<p class="font-bold ${insertedCount > 0 ? "text-emerald-700" : "text-slate-600"}">${insertedCount} produk berhasil ditambahkan, ${failedRows.length} baris gagal.</p>`;
     if (failedRows.length > 0) {
@@ -241,6 +267,7 @@ window.ProdukBulk = (function () {
   return {
     VALID_KATEGORI,
     MARKETPLACE,
+    formatHarga,
     cekLink,
     CSV_HEADER,
     mimeTypeForExt,

@@ -96,6 +96,7 @@ async function prosesBulkProduk() {
           p_nama: row.nama,
           p_kategori: row.kategori,
           p_harga: row.harga,
+          p_harga_maks: row.harga_maks,
           p_deskripsi: row.deskripsi,
           p_image_url: image_url,
           p_shopee_link: row.shopee_link,
